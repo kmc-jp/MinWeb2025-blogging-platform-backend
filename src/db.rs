@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use mongodb::{bson::Uuid, Client, error::Result};
+use mongodb::{Client, error::Result};
 use bson::doc;
 
 pub async fn get_blog_text(uri: &str, user_name: &str, title: &str) -> Result<Option<BlogText>> {
@@ -13,7 +13,7 @@ pub async fn get_blog_text(uri: &str, user_name: &str, title: &str) -> Result<Op
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlogText {
     #[serde(rename = "_id")]
-    id: Uuid,
+    id: i32,
     title: String,
     content: String
 }
