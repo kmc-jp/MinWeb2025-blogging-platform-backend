@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use mongodb::{Client, error::Result};
-use bson::doc;
+use mongodb::{Client, error::Result,};
+use bson::{doc, oid::ObjectId};
 
 pub async fn get_blog_text(uri: &str, user_name: &str, title: &str) -> Result<Option<BlogText>> {
     let client = Client::with_uri_str(uri).await?;
@@ -13,7 +13,7 @@ pub async fn get_blog_text(uri: &str, user_name: &str, title: &str) -> Result<Op
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlogText {
     #[serde(rename = "_id")]
-    id: i32,
+    id: ObjectId,
     title: String,
     content: String
 }
