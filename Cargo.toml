@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+async-trait = "0.1.88"
 axum = "0.8"
 bson = "2.15.0"
 mongodb = "3.2.3"
