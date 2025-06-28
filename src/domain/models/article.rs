@@ -1,5 +1,6 @@
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
+use chrono::{DateTime, Utc};
 
 use crate::domain::models::user_name::UserName;
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -8,5 +9,7 @@ pub struct Article {
     id: ObjectId,
     author: UserName,
     content: String,
-    title: String
+    title: String,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
