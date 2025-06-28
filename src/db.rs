@@ -12,6 +12,7 @@ pub async fn get_blog_text(uri: &str, user_name: &str, title: &str) -> Result<Op
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlogText {
+    #[serde(rename = "_id")]
     id: Uuid,
     title: String,
     content: String
