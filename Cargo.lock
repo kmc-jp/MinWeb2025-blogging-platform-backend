@@ -7,6 +7,7 @@ name = "MinWeb2025-blogging-platform-backend"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "bson",
  "mongodb",
  "serde",
  "tokio",
