@@ -8,6 +8,7 @@ async-trait = "0.1.88"
 axum = "0.8"
 bson = "2.15.0"
 mongodb = "3.2.3"
+chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.0", features = ["full"] }
 uuid = { version = "1.0", features = ["serde", "v4"] }
