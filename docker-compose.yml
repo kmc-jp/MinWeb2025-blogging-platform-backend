@@ -1,0 +1,36 @@
+version: '4.0'
+
+services:
+  # Rust/Axumアプリケーションのサービス
+  app:
+    # カレントディレクトリにあるDockerfileを使ってイメージをビルド
+    build: .
+    container_name: my-rust-app
+    # ホストのポート8080をコンテナのポート8080にマッピング
+    ports:
+      - "8080:3000"
+    # 環境変数を設定 (アプリケーションからMongoDBに接続するためのURL)
+    environment:
+      # 'mongo'は下のサービス名。Dockerの内部ネットワークで名前解決される
+      DATABASE_URL: "mongodb://mongo:27017/mydatabase"
+    # mongoサービスが起動してからappサービスを起動するように依存関係を設定
+    depends_on:
+      - mongo
+
+  # MongoDBのサービス
+  mongo:
+    # MongoDBの公式イメージを使用
+    image: mongo:latest
+    container_name: my-mongo-db
+    # データを永続化するための設定
+    # 'mongo-data'という名前のボリュームをコンテナの/data/dbにマウント
+    volumes:
+      - mongo-data:/data/db
+    # (任意) 外部から直接MongoDBに接続したい場合。通常は不要。
+    # ports:
+    #   - "27017:27017"
+
+# Dockerが管理するデータ永続化領域(ボリューム)を定義
+volumes:
+  mongo-data:
+
