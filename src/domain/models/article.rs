@@ -13,3 +13,17 @@ pub struct Article {
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
+
+impl Article {
+    pub fn new_article(title: String, author: UserName, content: String) -> Self {
+        let now = Utc::now();
+        Article {
+            id: ObjectId::new(),
+            title,
+            author,
+            content,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+}

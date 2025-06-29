@@ -5,7 +5,7 @@ use crate::domain::models::{article::Article, user_name::UserName};
 
 /// Articleのデータベースを管理する操作を抽象化したトレイト
 #[async_trait]
-pub trait ArticleRepositiory {
+pub trait ArticleRepository {
     /// 新しい記事を追加するメソッド
     async fn add_article(&self, article: Article) -> anyhow::Result<ObjectId>;
     /// titleとユーザー名を元に、記事を手に入れるメソッド
