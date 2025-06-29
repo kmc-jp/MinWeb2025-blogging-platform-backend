@@ -6,12 +6,12 @@ use crate::domain::models::user_name::UserName;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Article {
     #[serde(rename = "_id")]
-    id: ObjectId,
-    author: UserName,
-    content: String,
-    title: String,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    pub id: ObjectId,
+    pub author: UserName,
+    pub content: String,
+    pub title: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl Article {

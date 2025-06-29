@@ -16,7 +16,9 @@ use std::{collections::HashMap, sync::{Arc, RwLock}};
 use chrono::{DateTime, Utc};
 use axum::{extract::{path::Path, State}, response::{IntoResponse, Json}, routing::{get, post}, Router};
 use serde::{Deserialize, Serialize};
+use tokio::signal;
 use uuid::Uuid;
+use MinWeb2025_blogging_platform_backend::{infrastructure::article_repository::InMemoryArticleRepository, presentation::handlers::article_handler::create_article_handler, usecase::article_usecase::ArticleUsecase};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Article{
@@ -80,7 +82,7 @@ impl Articles {
 
 #[tokio::main]
 async fn main() {
-    let articles = Articles::default();
+    let articles = InMemoryArticleRepository::default();
 
     articles.add_article("Pythonはくそ", "furakuta", "Pythonはくそだ。なぜなら、Pythonは遅いからだ。");
     articles.add_article("Rustは最高", "furakuta", "Rustは最高だ。なぜなら、Rustは速いからだ。");
@@ -89,15 +91,10 @@ async fn main() {
     articles.add_article("Rustの所有権システム", "akkey", "Rustの所有権システムは、メモリ安全性を保証するための重要な機能です。所有権は、データの所有者が一人だけであることを保証します。");
     
     let app = Router::new()
-        .route("/", get(get_all_articles).post(post_query_articles))
-        .route("/{user}/create-article", post(post_new_article))
-        .route("/{user}/articles", get(ger_author_articles))
-        .route("/{user}/articles/{id}", get(get_article))
-        .route("/{user}/update-article/{id}", post(post_update_article))
-        .with_state(articles);
+        .nest("/api", create_article_handler(ArticleUsecase::new(articles)));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app).with_graceful_shutdown(async { signal::ctrl_c().await.unwrap() }).await.unwrap();
 }
 
 async fn get_all_articles(
