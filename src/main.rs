@@ -12,76 +12,27 @@
 //         Err(err) => println!("{err}"),
 //     }
 
-use std::{collections::HashMap, sync::{Arc, RwLock}};
-use chrono::{DateTime, Utc};
-use axum::{extract::{path::Path, State}, response::{IntoResponse, Json}, routing::{get, post}, Router};
-use serde::{Deserialize, Serialize};
+use std::time::Duration;
+use axum::{error_handling::HandleErrorLayer, http::StatusCode, routing::get, Router};
+use dotenvy::dotenv;
 use tokio::signal;
-use uuid::Uuid;
+use tower::{BoxError, ServiceBuilder};
+use tower_http::trace::TraceLayer;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use MinWeb2025_blogging_platform_backend::{infrastructure::article_repository::InMemoryArticleRepository, presentation::handlers::article_handler::create_article_handler, usecase::article_usecase::ArticleUsecase};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct Article{
-    id: Uuid,
-    title: String,
-    author: String,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
-    content: String,
-}
-
-impl Article {
-    fn new(title: String, author: String, content: String) -> Self {
-        let now = Utc::now();
-        Article {
-            id: Uuid::new_v4(),
-            title,
-            author,
-            created_at: now,
-            updated_at: now,
-            content,
-        }
-    }
-    
-}
-
-#[derive(Default, Clone)]
-struct Articles {
-    articles: Arc<RwLock<HashMap<Uuid, Article>>>,
-}
-
-impl Articles {
-    fn add_article(&self, title: impl Into<String>, author: impl Into<String>, content: impl Into<String>) -> Uuid {
-        let article = Article::new(title.into(), author.into(), content.into());
-        let mut articles = self.articles.write().unwrap();
-        articles.insert(article.id, article.clone());
-        article.id
-    }
-
-    fn get_article(&self, id: Uuid) -> Option<Article> {
-        let articles = self.articles.read().unwrap();
-        articles.get(&id).cloned()
-    }
-
-    fn update_page(&self, id: Uuid, title: Option<String>, content: Option<String>) -> Option<Article> {
-        let mut articles = self.articles.write().unwrap();
-        if let Some(article) = articles.get_mut(&id) {
-            if let Some(new_title) = title {
-                article.title = new_title;
-            }
-            if let Some(new_content) = content {
-                article.content = new_content;
-            }
-            article.updated_at = Utc::now();
-            Some(article.clone())
-        } else {
-            None
-        }
-    }
-}
 
 #[tokio::main]
 async fn main() {
+    dotenv().expect(".env file not found");
+
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "axum_sandbox=debug,tower_http=debug".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
     let articles = InMemoryArticleRepository::default();
 
     articles.add_article("Pythonはくそ", "furakuta", "Pythonはくそだ。なぜなら、Pythonは遅いからだ。");
@@ -91,93 +42,31 @@ async fn main() {
     articles.add_article("Rustの所有権システム", "akkey", "Rustの所有権システムは、メモリ安全性を保証するための重要な機能です。所有権は、データの所有者が一人だけであることを保証します。");
     
     let app = Router::new()
+        .route("/", get(root_handler))
+        .layer(
+            ServiceBuilder::new()
+                .layer(HandleErrorLayer::new(|error: BoxError| async move {
+                    if error.is::<tower::timeout::error::Elapsed>() {
+                        Ok(StatusCode::REQUEST_TIMEOUT)
+                    } else {
+                        Err((
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            format!("Unhandled internal error: {error}"),
+                        ))
+                    }
+                }))
+                .timeout(Duration::from_secs(10))
+                .layer(TraceLayer::new_for_http())
+                .into_inner(),
+        )
         .nest("/api/articles", create_article_handler(ArticleUsecase::new(articles)));
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await.unwrap();
+    tracing::debug!("listening on http://{}", listener.local_addr().unwrap());
     axum::serve(listener, app).with_graceful_shutdown(async { signal::ctrl_c().await.unwrap() }).await.unwrap();
 }
 
-async fn get_all_articles(
-    State(articles): State<Articles>,
-) -> Json<Vec<Article>> {
-    let article_map = articles.articles.read().unwrap();
-    let all_articles: Vec<Article> = article_map.values().cloned().collect();
-    Json(all_articles)
+async fn root_handler() -> String {
+    tracing::debug!("Root handler called");
+    "Welcome to the Blogging Platform API!".to_string()
 }
-
-#[derive(Deserialize, Debug, Clone)]
-struct PostQueryArticles {
-    title_query: String,
-}
-
-async fn post_query_articles(
-    State(articles): State<Articles>,
-    Json(query): Json<PostQueryArticles>,
-) -> impl IntoResponse{
-    let articles_map = articles.articles.read().unwrap();
-    let filtered_articles: Vec<Article> = articles_map
-        .values()
-        .filter(|article| article.title.contains(&query.title_query))
-        .cloned()
-        .collect();
-    Json(filtered_articles)
-}
-
-#[derive(Deserialize, Debug, Clone)]
-struct PostNewArticle {
-    title: String,
-    content: String,
-}
-
-async fn post_new_article(
-    State(articles): State<Articles>,
-    Path(user): Path<String>,
-    Json(new_article): Json<PostNewArticle>,
-) -> impl IntoResponse {
-    let article_id = articles.add_article(new_article.title, user, new_article.content);
-    Json(article_id)
-}
-
-async fn ger_author_articles(
-    State(articles): State<Articles>,
-    Path(user): Path<String>,
-) -> Json<Vec<Article>> {
-    let article_map = articles.articles.read().unwrap();
-    let user_articles: Vec<Article> = article_map
-        .values()
-        .filter(|article| article.author == user)
-        .cloned()
-        .collect();
-    Json(user_articles)
-}
-
-async fn get_article(
-    State(articles): State<Articles>,
-    Path((_, id)): Path<(String, Uuid)>,
-) -> impl IntoResponse {
-    let article = articles.get_article(id);
-    match article {
-        Some(article) => Json(article),
-        None => Json(Article::new("Not Found".to_string(), "Unknown".to_string(), "Article not found.".to_string())),
-    }
-}
-
-#[derive(Deserialize, Debug, Clone)]
-struct PostUpdateArticle {
-    title: Option<String>,
-    content: Option<String>,
-}
-
-
-async fn post_update_article(
-    State(articles): State<Articles>,
-    Path((_, id)): Path<(String, Uuid)>,
-    Json(update_data): Json<PostUpdateArticle>,
-) -> impl IntoResponse {
-    let updated_article = articles.update_page(id, update_data.title, update_data.content);
-    match updated_article {
-        Some(article) => Json(article),
-        None => Json(Article::new("Not Found".to_string(), "Unknown".to_string(), "Article not found.".to_string())),
-    }
-}
-

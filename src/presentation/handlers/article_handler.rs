@@ -67,24 +67,24 @@ struct PostNewArticle {
 
 async fn post_new_article<T: ArticleService>(
     State(state): State<AppState<T>>,
-    Path(user): Path<UserName>,
+    Path(user): Path<String>,
     Json(payload): Json<PostNewArticle>,
 ) -> impl IntoResponse {
-    let article = state.article_service.add_article(payload.title, user, payload.content).await;
+    let article = state.article_service.add_article(payload.title, UserName::try_from(user).unwrap(), payload.content).await;
     Json(article)
 }
 
 async fn get_articles_by_author<T: ArticleService>(
     State(state): State<AppState<T>>,
-    Path(user): Path<UserName>,
+    Path(user): Path<String>,
 ) -> impl IntoResponse {
-    let articles = state.article_service.get_articles_by_author(user).await;
+    let articles = state.article_service.get_articles_by_author(UserName::try_from(user).unwrap()).await;
     Json(articles)
 }
 
 async fn get_article_by_id<T: ArticleService>(
     State(state): State<AppState<T>>,
-    Path((_, id)): Path<(UserName, ObjectId)>,
+    Path((_, id)): Path<(String, ObjectId)>,
 ) -> impl IntoResponse {
     let article = state.article_service.get_article_by_id(id).await;
     Json(article)
@@ -98,7 +98,7 @@ struct UpdateArticle {
 
 async fn update_article<T: ArticleService>(
     State(state): State<AppState<T>>,
-    Path((_, id)): Path<(UserName, ObjectId)>,
+    Path((_, id)): Path<(String, ObjectId)>,
     Json(payload): Json<UpdateArticle>,
 ) -> Result<(), String> {
     state.article_service.update_article(id, payload.title, payload.content).await
