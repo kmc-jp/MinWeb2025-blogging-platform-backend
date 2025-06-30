@@ -10,18 +10,38 @@ cargo run
 
 ## 提供されているバックエンドAPI
 
-### すべての記事のデータをJSONで取得
+### 最大１００件の記事のデータをJSONで取得
 
-エンドポイント`/`
+エンドポイント`/api/articles`
+
+HTTP GET通信で取得します。
+このエンドポイントは、最新の記事から最大100件の記事データを取得します。
 
 curlコマンドによる使用例
 ```
-curl http://localhost:3000/
+curl http://localhost:3000/api/articles
+```
+
+### 指定した範囲の記事のデータをJSONで取得
+
+エンドポイント`/api/articles`
+
+POST通信に用いるJSONの形式
+```
+{
+    "from": 開始位置,
+    "max": 取得する最大件数
+}
+```
+
+curlコマンドによる使用例
+```
+curl -X POST http://localhost:3000/api/articles -H "Content-Type: application/json" -d '{"from": 0, "max": 10}'
 ```
 
 ### 特定の文字列をタイトルに含むすべての記事のデータをJSONで取得
 
-エンドポイント`/`
+エンドポイント`/api/articles/search`
 
 POST通信に用いるJSONの形式
 ```
@@ -32,12 +52,12 @@ POST通信に用いるJSONの形式
 
 curlコマンドによる使用例
 ```
-curl -X POST http://localhost:3000/ -H "Content-Type: application/json" -d '{"title_query": "検索したい文字列"}'
+curl -X POST http://localhost:3000/api/articles/search -H "Content-Type: application/json" -d '{"title_query": "検索したい文字列"}'
 ```
 
 ### 新しい記事を作成
 
-エンドポイント`/{user}/create-article/`
+エンドポイント`/api/articles/{user}/new`
 
 `user`は記事を作成するユーザーの名前です。
 
@@ -51,36 +71,40 @@ POST通信に用いるJSONの形式
 
 curlコマンドによる使用例
 ```
-curl -X POST http://localhost:3000/hoge/create-article/ -H "Content-Type: application/json" -d '{"title": "記事のタイトル", "content": "記事の内容"}'
+curl -X POST http://localhost:3000/api/articles/hoge/new -H "Content-Type: application/json" -d '{"title": "記事のタイトル", "content": "記事の内容"}'
 ```
 
 ### 特定のユーザーが作成したすべての記事を取得
 
-エンドポイント`/{user}/articles/`
+エンドポイント`/api/articles/{user}`
+
+HTTP GET通信で取得します。
 
 `user`は記事を作成したユーザーの名前です。
 
 curlコマンドによる使用例
 ```
-curl http://localhost:3000/hoge/articles/
+curl http://localhost:3000/api/articles/hoge
 ```
 
 ### 特定の記事を取得
 
-エンドポイント`/{user}/articles/{id}`
+エンドポイント`/api/articles/{user}/{id}`
+
+HTTP GET通信で取得します。
 
 `user`は記事を作成したユーザーの名前、`id`は記事のUUIDです。
 
 curlコマンドによる使用例
 ```
-curl http://localhost:3000/hoge/articles/{id}
+curl http://localhost:3000/api/articles/hoge/{id}
 ```
 
 上記の`{id}`は実際のUUIDに置き換えてください。
 
 ### 特定の記事を更新
 
-エンドポイント`/{user}/update-article/{id}`
+エンドポイント`/api/articles/{user}/update/{id}`
 
 `user`は記事を作成したユーザーの名前、`id`は記事のUUIDです。
 
@@ -96,7 +120,7 @@ POST通信に用いるJSONの形式
 
 curlコマンドによる使用例
 ```
-curl -X POST http://localhost:3000/hoge/update-article/{id} -H "Content-Type: application/json" -d '{"title": "新しい記事のタイトル", "content": "新しい記事の内容"}'
+curl -X POST http://localhost:3000/api/articles/hoge/update/{id} -H "Content-Type: application/json" -d '{"title": "新しい記事のタイトル"}'
 ```
 
 上記の`{id}`は実際のUUIDに置き換えてください。

@@ -15,32 +15,28 @@ pub fn create_article_handler<T: ArticleService + Clone + Send + Sync + 'static>
     };
 
     Router::new()
-        .route("/", get(root_handler))
-        .route("/articles", get(default_get_articles::<T>).post(post_query_by_title::<T>))
-        .route("/articles/{user}/new", post(post_new_article::<T>))
-        .route("/articles/{user}", get(get_articles_by_author::<T>))
-        .route("/articles/{user}/{id}", get(get_article_by_id::<T>))
-        .route("/articles/{user}/{id}/update", patch(update_article::<T>))
+        .route("/", get(default_get_articles::<T>).post(get_articles::<T>))
+        .route("/search", post(post_query_by_title::<T>))
+        .route("/{user}/new", post(post_new_article::<T>))
+        .route("/{user}", get(get_articles_by_author::<T>))
+        .route("/{user}/{id}", get(get_article_by_id::<T>))
+        .route("/{user}/update/{id}", patch(update_article::<T>))
         .with_state(app_state)
 } 
 
-async fn root_handler() -> String {
-    "Welcome to the Article API".to_string()
+#[derive(Deserialize, Debug, Clone)]
+struct GetArticlesParams {
+    from: usize,
+    max: usize,
 }
 
-// #[derive(Deserialize, Debug, Clone)]
-// struct GetArticlesParams {
-//     from: usize,
-//     max: usize,
-// }
-
-// async fn get_articles<T: ArticleService>(
-//     State(state): State<AppState<T>>,
-//     Json(params): Json<GetArticlesParams>,
-// ) -> impl IntoResponse {
-//     let articles = state.article_service.get_articles(params.from, params.max).await;
-//     Json(articles)
-// }
+async fn get_articles<T: ArticleService>(
+    State(state): State<AppState<T>>,
+    Json(params): Json<GetArticlesParams>,
+) -> impl IntoResponse {
+    let articles = state.article_service.get_articles(params.from, params.max).await;
+    Json(articles)
+}
 
 async fn default_get_articles<T: ArticleService>(
     State(state): State<AppState<T>>,

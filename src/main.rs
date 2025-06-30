@@ -91,7 +91,7 @@ async fn main() {
     articles.add_article("Rustの所有権システム", "akkey", "Rustの所有権システムは、メモリ安全性を保証するための重要な機能です。所有権は、データの所有者が一人だけであることを保証します。");
     
     let app = Router::new()
-        .nest("/api", create_article_handler(ArticleUsecase::new(articles)));
+        .nest("/api/articles", create_article_handler(ArticleUsecase::new(articles)));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).with_graceful_shutdown(async { signal::ctrl_c().await.unwrap() }).await.unwrap();
