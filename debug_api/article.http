@@ -1,0 +1,53 @@
+// This file is used to test the API endpoint for fetching articles.
+// Make sure your server is running before executing these requests.
+
+// 最大１００件の記事を取得する
+GET http://localhost:3000/api/articles
+
+###
+// 指定した範囲の記事のデータをJSONで取得
+POST http://localhost:3000/api/articles HTTP/1.1
+Content-Type: application/json
+
+{
+  "from": 1,
+  "max": 2
+}
+
+###
+// 特定の文字列をタイトルに含むすべての記事のデータをJSONで取得
+POST http://localhost:3000/api/articles/search HTTP/1.1
+Content-Type: application/json
+
+{
+    "title_query": "Rust"
+}
+
+###
+// 新しい記事を作成
+POST http://localhost:3000/api/articles/furakuta/new HTTP/1.1
+Content-Type: application/json
+
+{
+    "title": "Furakutaの新しい記事",
+    "content": "これはFurakutaに関する新しい記事の内容です。"
+}
+
+###
+// 特定のユーザーが作成したすべての記事を取得
+GET http://localhost:3000/api/articles/furakuta
+
+###
+// 特定の記事を取得
+// 注意：記事IDは実際のデータベースに存在するものを使用してください。
+GET http://localhost:3000/api/articles/akkey/686268269199da942687501d
+
+###
+// 特定の記事を更新
+// 注意：記事IDは実際のデータベースに存在するものを使用してください。
+PATCH http://localhost:3000/api/articles/furakuta/update/686273f5be05288894cc10ee
+Content-Type: application/json
+
+{
+    "content": "ニューラルネットワークは生物の脳の構造と機能を模倣した計算モデルです。"
+}
