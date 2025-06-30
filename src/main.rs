@@ -12,6 +12,7 @@
 //         Err(err) => println!("{err}"),
 //     }
 
+
 use std::time::Duration;
 use axum::{error_handling::HandleErrorLayer, http::StatusCode, routing::get, Router};
 use dotenvy::dotenv;
@@ -35,9 +36,21 @@ async fn main() {
 
     let articles = InMemoryArticleRepository::default();
 
-    articles.add_article("Pythonはくそ", "furakuta", "Pythonはくそだ。なぜなら、Pythonは遅いからだ。");
-    articles.add_article("Rustは最高", "furakuta", "Rustは最高だ。なぜなら、Rustは速いからだ。");
-    articles.add_article("ニューラルネットワークの基礎", "furakuta", "ニューラルネットワークの基礎を学ぶことは、AIの世界を理解するための第一歩です。");
+    articles.add_article(
+        "Pythonはくそ",
+        "furakuta",
+        "Pythonはくそだ。なぜなら、Pythonは遅いからだ。",
+    );
+    articles.add_article(
+        "Rustは最高",
+        "furakuta",
+        "Rustは最高だ。なぜなら、Rustは速いからだ。",
+    );
+    articles.add_article(
+        "ニューラルネットワークの基礎",
+        "furakuta",
+        "ニューラルネットワークの基礎を学ぶことは、AIの世界を理解するための第一歩です。",
+    );
     articles.add_article("おいしいシチューの作り方", "akkey", "おいしいシチューを作るためには、まず新鮮な野菜と肉を用意します。次に、鍋に油を熱し、野菜と肉を炒めます。最後に、スープストックを加えて煮込みます。");
     articles.add_article("Rustの所有権システム", "akkey", "Rustの所有権システムは、メモリ安全性を保証するための重要な機能です。所有権は、データの所有者が一人だけであることを保証します。");
     
@@ -61,7 +74,7 @@ async fn main() {
         )
         .nest("/api/articles", create_article_handler(ArticleUsecase::new(articles)));
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     tracing::debug!("listening on http://{}", listener.local_addr().unwrap());
     axum::serve(listener, app).with_graceful_shutdown(async { signal::ctrl_c().await.unwrap() }).await.unwrap();
 }
