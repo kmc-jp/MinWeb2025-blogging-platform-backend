@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use bson::oid::ObjectId;
 
-use crate::domain::models::{article::Article, user_name::UserName};
+use crate::domain::models::{article::Article, user::UserName};
 
 /// Articleのデータベースを管理する操作を抽象化したトレイト
 #[async_trait]

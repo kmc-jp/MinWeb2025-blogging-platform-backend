@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use bson::oid::ObjectId;
 use chrono::Utc;
 
-use crate::domain::{models::{article::Article, user_name::UserName}, repositorys::article_repository::ArticleRepository};
+use crate::domain::{models::{article::Article, user::UserName}, repositorys::article_repository::ArticleRepository};
 
 #[derive(Clone)]
 pub struct ArticleRepositoryImpl{

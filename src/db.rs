@@ -1,7 +1,7 @@
 use mongodb::{Client, error::Result, Collection};
 use bson::doc;
 
-use crate::domain::models::{article::Article, user_name::UserName};
+use crate::domain::models::{article::Article, user::UserName};
 
 pub async fn get_blog_text(uri: &str, user_name: &UserName, title: &str) -> Result<Option<Article>> {
     let collection = get_blog_collection(uri, user_name).await?;
