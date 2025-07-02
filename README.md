@@ -277,3 +277,4 @@ curl -X DELETE http://localhost:3000/api/users/hoge
 ```http
 DELETE http://localhost:3000/api/users/hoge
 ```
+
