@@ -164,7 +164,7 @@ GET http://localhost:3000/api/articles/search?author=akkey
     "introduction": "自己紹介", // ユーザーの自己紹介
     "email": "メールアドレス", // ユーザーのメールアドレス
     "show_email": true, // ユーザーのメールアドレスを公開するかどうか
-    "password": "ハッシュ化されたパスワード", // ユーザーのパスワードはハッシュ化されて保存されます
+    "pw_hash": "ハッシュ化されたパスワード", // ユーザーのパスワードはハッシュ化されて保存されます
     "created_at": "ユーザーが作成された日時"
 }
 ```

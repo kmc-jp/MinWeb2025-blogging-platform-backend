@@ -2,7 +2,7 @@ use axum::{extract::{Path, State}, http::StatusCode, response::{IntoResponse, Re
 use bson::oid::ObjectId;
 use serde::Deserialize;
 
-use crate::{domain::models::{article::Article, user_name::UserName}, usecase::article_usecase::ArticleService};
+use crate::{domain::models::{article::Article, user::UserName}, usecase::article_usecase::ArticleService};
 
 #[derive(Clone)]
 pub struct AppState<T: ArticleService> {
