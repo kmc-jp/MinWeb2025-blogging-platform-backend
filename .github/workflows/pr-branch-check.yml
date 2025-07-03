@@ -1,0 +1,20 @@
+name: Check PR Source Branch
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    branches:
+      - main
+
+jobs:
+  check-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check source branch
+        if: github.head_ref != 'dev'
+        run: |
+          echo "Error: Pull requests to the main branch are only allowed from the 'dev' branch."
+          exit 1
