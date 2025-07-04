@@ -1,17 +1,8 @@
-// use axum::{Router, routing::get};
-// use MinWeb2025_blogging_platform_backend::db::{get_blog_text};
-// #[tokio::main]
-// async fn main() {
-//     let uri = ""; //書き換えて
-//     let user_name = "akkey";
-//     let title = "おいしいシチューの作り方";
-//     let blog_text = get_blog_text(uri, user_name, title).await;
-//     match blog_text {
-//         Ok(Some(blog_text)) => println!("{blog_text:?}"),
-//         Ok(None) => println!("ブログは見つからなかった"),
-//         Err(err) => println!("{err}"),
-//     }
-
+pub mod db;
+pub mod infrastructure;
+pub mod domain;
+pub mod usecase;
+pub mod presentation;
 
 use std::time::Duration;
 use axum::{error_handling::HandleErrorLayer, http::StatusCode, routing::get, Router};
@@ -20,7 +11,8 @@ use tokio::signal;
 use tower::{BoxError, ServiceBuilder};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use MinWeb2025_blogging_platform_backend::{infrastructure::article_repository::InMemoryArticleRepository, presentation::handlers::article_handler::create_article_handler, usecase::article_usecase::ArticleUsecase};
+
+use crate::{domain::repositorys::{article_repository::ArticleRepository, user_repository::UserRepository}, infrastructure::{inmemory_article_repository::InMemoryArticleRepository, inmemory_user_repository::InMemoryUserRepository}, presentation::handlers::create_handler::create_handler, usecase::{article_usecase::ArticleUsecase, user_usecase::UserUsecase}};
 
 #[tokio::main]
 async fn main() {
@@ -35,25 +27,57 @@ async fn main() {
         .init();
 
     let articles = InMemoryArticleRepository::default();
+    let users = InMemoryUserRepository::default();
+
+    let furakuta = users.add_user(
+        "furakuta".to_string(),
+        "ふらくた".to_string(),
+        "Rustと機械学習を勉強中".to_string(),
+        "otera65537@gmail.com".to_string(),
+        true,
+        "password123".to_string()
+    ).await.unwrap();
+
+    let hoge = users.add_user(
+        "hoge".to_string(),
+        "ほげ".to_string(),
+        "プログラミング初心者".to_string(),
+        "hogehogehoge`gmail.com".to_string(),
+        false,
+        "password456".to_string()
+    ).await.unwrap();
 
     articles.add_article(
-        "Pythonはくそ",
-        "furakuta",
-        "Pythonはくそだ。なぜなら、Pythonは遅いからだ。",
-    );
+        "Pythonはくそ".to_string(),
+        furakuta.name.clone(),
+        "動的型付け言語でありあまりに自由な書き方ができてしまうPythonは、型安全性が低く、バグが発生しやすい。またパフォーマンスも悪く、特に大規模なプロジェクトでは問題が顕著になる。".to_string(),
+    ).await.unwrap();
     articles.add_article(
-        "Rustは最高",
-        "furakuta",
-        "Rustは最高だ。なぜなら、Rustは速いからだ。",
-    );
+        "Rustは最高".to_string(),
+        furakuta.name.clone(),
+        "Rustは、メモリ安全性とパフォーマンスを両立させることができる素晴らしいプログラミング言語です。特に、所有権システムにより、コンパイル時に多くのバグを防ぐことができます。また比較的新しい言語であるため、最新のプログラミングパラダイムを取り入れやすい点も魅力です。".to_string(),
+    ).await.unwrap();
     articles.add_article(
-        "ニューラルネットワークの基礎",
-        "furakuta",
-        "ニューラルネットワークの基礎を学ぶことは、AIの世界を理解するための第一歩です。",
-    );
-    articles.add_article("おいしいシチューの作り方", "akkey", "おいしいシチューを作るためには、まず新鮮な野菜と肉を用意します。次に、鍋に油を熱し、野菜と肉を炒めます。最後に、スープストックを加えて煮込みます。");
-    articles.add_article("Rustの所有権システム", "akkey", "Rustの所有権システムは、メモリ安全性を保証するための重要な機能です。所有権は、データの所有者が一人だけであることを保証します。");
-    
+        "ニューラルネットワークの基礎".to_string(),
+        furakuta.name.clone(),
+        "ニューラルネットワークは、人工知能の一分野であり、脳の神経細胞の働きを模倣したモデルです。基本的な構造は、入力層、中間層、出力層から成り立っています。各層のノードは、前の層からの入力を受け取り、重み付けされた合計を計算し、活性化関数を通じて次の層に出力します。".to_string(),
+    ).await.unwrap();
+    articles.add_article(
+        "機械学習のアルゴリズム".to_string(),
+        hoge.name.clone(),
+        "機械学習には、教師あり学習、教師なし学習、強化学習などのさまざまなアプローチがあります。教師あり学習では、ラベル付きデータを使用してモデルを訓練し、未知のデータに対する予測を行います。教師なし学習では、データのパターンや構造を見つけることに焦点を当てます。強化学習は、エージェントが環境と相互作用しながら最適な行動を学ぶ方法です。".to_string(),
+    ).await.unwrap();
+    articles.add_article(
+        "データサイエンスの重要性".to_string(),
+        hoge.name.clone(),
+        "データサイエンスは、データから価値を引き出すための学問であり、ビジネスや研究において非常に重要な役割を果たしています。データ分析、機械学習、統計学などの技術を駆使して、意思決定を支援し、新しい知見を発見することができます。".to_string(),
+    ).await.unwrap();
+    articles.add_article(
+        "「ほげ」って何だろうね".to_string(),
+        hoge.name.clone(),
+        "「ほげ」という言葉は、プログラミングの世界でよく使われる例え話やサンプルコードで見かけることがあります。特に日本のプログラマーの間では、何か具体的な意味を持たないプレースホルダーとして使われることが多いです。".to_string(),
+    ).await.unwrap();
+        
     let app = Router::new()
         .route("/", get(root_handler))
         .layer(
@@ -72,7 +96,7 @@ async fn main() {
                 .layer(TraceLayer::new_for_http())
                 .into_inner(),
         )
-        .nest("/api/articles", create_article_handler(ArticleUsecase::new(articles)));
+        .nest("/api", create_handler(ArticleUsecase::new(articles), UserUsecase::new(users)));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     tracing::debug!("listening on http://{}", listener.local_addr().unwrap());

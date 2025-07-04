@@ -1,0 +1,34 @@
+// ユーザーのデータのリストをJSONで取得
+GET http://localhost:3000/api/users?limit=5
+
+###
+// 指定したユーザーのデータをJSONで取得
+GET http://localhost:3000/api/users/furakuta
+
+###
+// 新しいユーザーを作成
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+    "name": "fuga",
+    "display_name": "Fuga User",
+    "intro": "Hello, I am Fuga.",
+    "email": "fuga@gmail.com",
+    "show_email": true,
+    "password": "n923hnv9pqh3n899"
+}
+
+###
+// 特定のユーザーを更新
+PATCH http://localhost:3000/api/users/furakuta
+Content-Type: application/json
+
+{
+    "display_name": "🫠",
+    "intro": "グッバイ物理学実験"
+}
+
+###
+// 特定のユーザーを削除
+DELETE http://localhost:3000/api/users/fuga

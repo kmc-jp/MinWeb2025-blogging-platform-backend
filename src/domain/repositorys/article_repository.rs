@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use bson::oid::ObjectId;
 use mongodb::error::Error;
 
-use crate::domain::{models::{article::Article, article_query::ArticleQuery, user_name::UserName}, repositorys::user_repository::UserRepository};
+use crate::domain::{models::{article::Article, article_query::ArticleQuery, user_name::UserName}};
 
 /// Articleのデータベースを管理する操作を抽象化したトレイト
 #[async_trait]

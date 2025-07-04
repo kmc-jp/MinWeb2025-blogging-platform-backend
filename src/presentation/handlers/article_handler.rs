@@ -47,14 +47,21 @@ pub async fn create_article<T: ArticleService, U: UserService>(
     State(state): State<AppState<T, U>>,
     Json(payload): Json<CreateArticlePayload>,
 ) -> impl IntoResponse {
-    let author_user_name = match state.user_service.validate_user_name(&payload.author).await {
-        Ok(name) => name,
+    let author_name = match state.user_service.get_user_by_name(&payload.author).await {
+        Ok(Some(user)) => user.name,
+        Ok(None) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                format!("User '{}' not found", payload.author),
+            )
+                .into_response()
+        },
         Err(e) => return (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
     };
 
     match state
         .article_service
-        .create_article(payload.title, author_user_name, payload.content)
+        .create_article(payload.title, author_name, payload.content)
         .await
     {
         Ok(article) => (StatusCode::CREATED, Json(article)).into_response(),

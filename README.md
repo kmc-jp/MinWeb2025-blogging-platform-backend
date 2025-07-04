@@ -106,7 +106,7 @@ PATCH http://localhost:3000/api/articles/{id}
 Content-Type: application/json
 
 {
-    "title": "本文はそのままでタイトルだけを更新",
+    "title": "本文はそのままでタイトルだけを更新"
 }
 ```
 
@@ -223,6 +223,7 @@ curl -X POST http://localhost:3000/api/users -H "Content-Type: application/json"
 ```http
 POST http://localhost:3000/api/users
 Content-Type: application/json
+
 {
     "name": "hoge",
     "display_name": "Hoge User",
@@ -259,6 +260,7 @@ curl -X PATCH http://localhost:3000/api/users/{user_name} -H "Content-Type: appl
 ```http
 PATCH http://localhost:3000/api/users/furakuta
 Content-Type: application/json
+
 {
     "display_name": "🫠",
     "intro": "グッバイ物理学実験"

@@ -1,0 +1,51 @@
+// This file is used to test the API endpoint for fetching articles.
+// Make sure your server is running before executing these requests.
+
+// 最大１００件の記事を取得する
+GET http://localhost:3000/api/articles
+
+###
+// 指定した範囲の記事のデータをJSONで取得
+GET http://localhost:3000/api/articles?limit=5
+
+###
+// 指定した記事のデータをJSONで取得
+// 注意：記事IDは実際のデータベースに存在するものを使用してください。
+GET http://localhost:3000/api/articles/6867ef2ff7aec8ef55297484
+
+###
+// 新しい記事を作成
+POST http://localhost:3000/api/articles
+Content-Type: application/json
+
+{
+    "author": "furakuta",
+    "title": "マイクラ最高",
+    "content": "マインクラフトほど想像力を掻き立てるゲームはない。ブロックを積み上げて自分だけの世界を作り上げることができる。"
+}
+
+###
+// 特定のユーザーが作成したすべての記事を取得
+GET http://localhost:3000/api/articles/furakuta
+
+###
+// 特定の記事部分的にを更新
+// 注意：記事IDは実際のデータベースに存在するものを使用してください。
+PATCH http://localhost:3000/api/articles/6867ef2ff7aec8ef55297484
+Content-Type: application/json
+
+{
+    "title": "Pythonは💩"
+}
+
+###
+// 特定の記事を削除
+DELETE http://localhost:3000/api/articles/6867ef2ff7aec8ef55297488
+
+###
+// 特定の文字列をタイトルに含むすべての記事のデータをJSONで取得
+GET http://localhost:3000/api/articles/search?title_q=マイクラ
+
+###
+// 特定のユーザーが作成したすべての記事を取得
+GET http://localhost:3000/api/articles/search?author=furakuta

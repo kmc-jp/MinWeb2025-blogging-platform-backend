@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-use crate::domain::repositorys::user_repository::UserRepository;
-
 /// UserNameは、ユーザー名を表す構造体です。
 /// ユーザー名は一意であり、文字列として表現されます
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
