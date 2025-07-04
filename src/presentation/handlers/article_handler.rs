@@ -1,106 +1,152 @@
-use axum::{extract::{Path, State}, http::StatusCode, response::{IntoResponse, Response}, routing::{get, patch, post}, Json, Router};
+use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
+};
 use bson::oid::ObjectId;
 use serde::Deserialize;
 
-use crate::{domain::models::{article::Article, user::UserName}, usecase::article_usecase::ArticleService};
-
-#[derive(Clone)]
-pub struct AppState<T: ArticleService> {
-    pub article_service: T,
-} 
-
-pub fn create_article_handler<T: ArticleService + Clone + Send + Sync + 'static>(todo_service: T) -> Router {
-    let app_state = AppState {
-        article_service: todo_service,
-    };
-
-    Router::new()
-        .route("/", get(default_get_articles::<T>).post(get_articles::<T>))
-        .route("/search", post(post_query_by_title::<T>))
-        .route("/{user}/new", post(post_new_article::<T>))
-        .route("/{user}", get(get_articles_by_author::<T>))
-        .route("/{user}/{id}", get(get_article_by_id::<T>))
-        .route("/{user}/update/{id}", patch(update_article::<T>))
-        .with_state(app_state)
-} 
+use crate::{
+    domain::models::article_query::ArticleQuery,
+    presentation::handlers::{create_handler::AppState, util::*},
+    usecase::{article_usecase::ArticleService, user_usecase::UserService},
+};
 
 #[derive(Deserialize, Debug, Clone)]
-struct GetArticlesParams {
-    from: usize,
-    max: usize,
+pub struct GetArticlesParams {
+    #[serde(default = "default_skip")]
+    skip: usize,
+    #[serde(default = "default_limit")]
+    limit: usize,
 }
 
-async fn get_articles<T: ArticleService>(
-    State(state): State<AppState<T>>,
-    Json(params): Json<GetArticlesParams>,
+pub async fn get_articles<T: ArticleService, U: UserService>(
+    State(state): State<AppState<T, U>>,
+    Query(params): Query<GetArticlesParams>,
 ) -> impl IntoResponse {
-    let articles = state.article_service.get_articles(params.from, params.max).await;
-    Json(articles)
-}
-
-async fn default_get_articles<T: ArticleService>(
-    State(state): State<AppState<T>>,
-) -> impl IntoResponse {
-    let articles = state.article_service.get_articles(0, 100).await;
-    Json(articles)
+    match state
+        .article_service
+        .get_articles(params.skip, params.limit)
+        .await
+    {
+        Ok(articles) => (StatusCode::OK, Json(articles)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
 }
 
 #[derive(Deserialize, Debug, Clone)]
-struct PostQueryArticles {
-    title_query: String,
-}
-
-async fn post_query_by_title<T: ArticleService>(
-    State(state): State<AppState<T>>,
-    Json(query): Json<PostQueryArticles>,
-) -> impl IntoResponse {
-    let articles = state.article_service.query_by_title(query.title_query).await;
-    Json(articles)
-}
-
-#[derive(Deserialize, Debug, Clone)]
-struct PostNewArticle {
+pub struct CreateArticlePayload {
+    author: String,
     title: String,
     content: String,
 }
 
-
-async fn post_new_article<T: ArticleService>(
-    State(state): State<AppState<T>>,
-    Path(user): Path<String>,
-    Json(payload): Json<PostNewArticle>,
+// この関数はUserAppStateに依存していることに注意してください
+pub async fn create_article<T: ArticleService, U: UserService>(
+    State(state): State<AppState<T, U>>,
+    Json(payload): Json<CreateArticlePayload>,
 ) -> impl IntoResponse {
-    let article = state.article_service.add_article(payload.title, UserName::try_from(user).unwrap(), payload.content).await;
-    Json(article)
+    let author_user_name = match state.user_service.validate_user_name(&payload.author).await {
+        Ok(name) => name,
+        Err(e) => return (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
+    };
+
+    match state
+        .article_service
+        .create_article(payload.title, author_user_name, payload.content)
+        .await
+    {
+        Ok(article) => (StatusCode::CREATED, Json(article)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
 }
 
-async fn get_articles_by_author<T: ArticleService>(
-    State(state): State<AppState<T>>,
-    Path(user): Path<String>,
+pub async fn get_article_by_id<T: ArticleService, U: UserService>(
+    State(state): State<AppState<T, U>>,
+    Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let articles = state.article_service.get_articles_by_author(UserName::try_from(user).unwrap()).await;
-    Json(articles)
-}
+    let oid = match ObjectId::parse_str(&id) {
+        Ok(oid) => oid,
+        Err(_) => return (StatusCode::BAD_REQUEST, "Invalid ID format").into_response(),
+    };
 
-async fn get_article_by_id<T: ArticleService>(
-    State(state): State<AppState<T>>,
-    Path((_, id)): Path<(String, ObjectId)>,
-) -> impl IntoResponse {
-    let article = state.article_service.get_article_by_id(id).await;
-    Json(article)
+    match state.article_service.get_article_by_id(oid).await {
+        Ok(Some(article)) => (StatusCode::OK, Json(article)).into_response(),
+        Ok(None) => (StatusCode::NOT_FOUND).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
 }
 
 #[derive(Deserialize, Debug, Clone)]
-struct UpdateArticle {
+pub struct UpdateArticlePayload {
     title: Option<String>,
     content: Option<String>,
 }
 
-async fn update_article<T: ArticleService>(
-    State(state): State<AppState<T>>,
-    Path((_, id)): Path<(String, ObjectId)>,
-    Json(payload): Json<UpdateArticle>,
-) -> Result<(), String> {
-    state.article_service.update_article(id, payload.title, payload.content).await
-        .map_err(|e| e.to_string())
+pub async fn update_article<T: ArticleService, U: UserService>(
+    State(state): State<AppState<T, U>>,
+    Path(id): Path<String>,
+    Json(payload): Json<UpdateArticlePayload>,
+) -> impl IntoResponse {
+    let oid = match ObjectId::parse_str(&id) {
+        Ok(oid) => oid,
+        Err(_) => return (StatusCode::BAD_REQUEST, "Invalid ID format").into_response(),
+    };
+
+    match state
+        .article_service
+        .update_article(oid, payload.title, payload.content)
+        .await
+    {
+        Ok(article) => (StatusCode::OK, Json(article)).into_response(),
+        Err(e) => {
+            // Assuming the service might return an error for not found cases
+            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
+        }
+    }
+}
+
+pub async fn delete_article<T: ArticleService, U: UserService>(
+    State(state): State<AppState<T, U>>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let oid = match ObjectId::parse_str(&id) {
+        Ok(oid) => oid,
+        Err(_) => return (StatusCode::BAD_REQUEST, "Invalid ID format").into_response(),
+    };
+
+    match state.article_service.delete_article(oid).await {
+        Ok(_) => (StatusCode::NO_CONTENT).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct SearchParams {
+    title_q: Option<String>,
+    author: Option<String>,
+    #[serde(default = "default_skip")]
+    skip: usize,
+    #[serde(default = "default_limit")]
+    limit: usize,
+}
+
+pub async fn search_articles<T: ArticleService, U: UserService>(
+    State(state): State<AppState<T, U>>,
+    Query(params): Query<SearchParams>,
+) -> impl IntoResponse {
+    let query = ArticleQuery {
+        title: params.title_q,
+        author: params.author,
+    };
+
+    match state
+        .article_service
+        .search_articles(params.skip, params.limit, query)
+        .await
+    {
+        Ok(articles) => (StatusCode::OK, Json(articles)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
 }

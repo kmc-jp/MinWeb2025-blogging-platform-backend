@@ -28,7 +28,7 @@ impl UserRepository for InMemoryUserRepository {
     async fn add_user(&self, name: String, display_name: String, intro: String, email: String, show_email: bool, password: String) -> Result<User, Error> {
         // ユーザー名の重複チェック
         let user_name;
-        match UserName::validate(name, self).await {
+        match self.validate_user_name(&name).await {
             Ok(valid_name) => user_name = valid_name,
             Err(e) => return Err(Error::custom(e)),
         }
@@ -50,7 +50,7 @@ impl UserRepository for InMemoryUserRepository {
     async fn update_user(&self, id: ObjectId, name: Option<String>, display_name: Option<String>, intro: Option<String>, email: Option<String>, show_email: Option<bool>, password: Option<String>) -> Result<User, Error> {
         // First, validate the new name if provided, before locking
         let validated_name = if let Some(ref new_name) = name {
-            Some(UserName::validate(new_name.clone(), self).await.map_err(|e| Error::custom(e))?)
+            Some(self.validate_user_name(new_name).await.map_err(|e| Error::custom(e))?)
         } else {
             None
         };
@@ -88,8 +88,12 @@ impl UserRepository for InMemoryUserRepository {
             Err(Error::custom("User not found"))
         }
     }
-    async fn check_user_exists(&self, name: &str) -> Result<bool, Error> {
+    async fn validate_user_name(&self, name: &str) -> Result<UserName, Error> {
         let users = self.users.read().unwrap();
-        Ok(users.values().any(|user| user.name.to_string() == name))
+        if users.values().any(|user| user.name.to_string() == name) {
+            Err(Error::custom("User name already exists"))
+        } else {
+            Ok(UserName::new(name.to_string()))
+        }
     }
 }

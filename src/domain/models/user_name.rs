@@ -14,15 +14,11 @@ impl UserName {
     pub fn to_string(&self) -> String {
         self.inner.clone()
     }
-    pub async fn validate(name: String, user_repository: &impl UserRepository) -> Result<UserName, String> {
-        if name.is_empty() {
-            return Err("ユーザー名は空にできません".to_string());
-        }
-        match user_repository.check_user_exists(&name).await {
-            Ok(true) => Err("このユーザー名はすでに使用されています".to_string()),
-            Ok(false) => Ok(UserName { inner: name }),
-            Err(e) => Err(format!("ユーザー名のチェック中にエラーが発生しました: {}", e)),
-        }
+    /// UserNameを新しく作成する
+    /// 必ず一意の名前を指定する必要があります
+    /// UserRepositoryのvalidate_user_nameメソッドのみで使用されます
+    pub fn new(name: String) -> Self {
+        UserName { inner: name }
     }
 }
 

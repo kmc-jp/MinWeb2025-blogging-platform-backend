@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use bson::oid::ObjectId;
 use mongodb::error::Error;
-use crate::domain::models::user::User;
+use crate::domain::models::{user::User, user_name::UserName};
 
 // Userのデータベースを管理する操作を抽象化したトレイト
 #[async_trait]
@@ -43,5 +43,5 @@ pub trait UserRepository {
 
     /// ユーザー名が存在するかどうかをチェックする
     /// name: チェックするユーザー名
-    async fn check_user_exists(&self, name: &str) -> Result<bool, Error>;
+    async fn validate_user_name(&self, name: &str) -> Result<UserName, Error>;
 }

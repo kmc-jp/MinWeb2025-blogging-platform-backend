@@ -5,12 +5,9 @@ use bson::oid::ObjectId;
 use chrono::Utc;
 use mongodb::error::Error;
 
-use crate::domain::{models::{article::Article, article_query::ArticleQuery, user_name::UserName}, repositorys::article_repository::ArticleRepository};
+use crate::domain::{models::{article::Article, article_query::ArticleQuery, user_name::UserName}, repositorys::{article_repository::ArticleRepository}};
 
 
-/// 上の実装が完成するまでの仮の実装
-/// この実装は、記事をメモリ上に保存するだけの簡易的なものです。
-/// サーバーが再起動すると、保存された記事は失われます。
 #[derive(Clone, Default, Debug)]
 pub struct InMemoryArticleRepository {
     articles: Arc<RwLock<HashMap<ObjectId, Article>>>,
@@ -29,19 +26,10 @@ impl ArticleRepository for InMemoryArticleRepository {
         let articles = self.articles.read().unwrap();
         Ok(articles.get(&id).cloned())
     }
-    async fn add_article(&self, title: String, author: UserName, content: String) -> Result<Article, Error> {
+    async fn add_article(&self ,title: String, author: UserName, content: String) -> Result<Article, Error> {
         let mut articles = self.articles.write().unwrap();
-        let id = ObjectId::new();
-        let now = Utc::now();
-        let article = Article {
-            id,
-            title,
-            author,
-            content,
-            created_at: now,
-            updated_at: now,
-        };
-        articles.insert(id, article.clone());
+        let article = Article::new_article(title, author, content);
+        articles.insert(article.id, article.clone());
         Ok(article)
     }
     async fn update_article(&self, id: ObjectId, title: Option<String>, content: Option<String>) -> Result<Article, Error> {

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use crate::domain::{
-    models::user::User,
+    models::{user::User, user_name::UserName},
     repositorys::user_repository::UserRepository,
 };
 
@@ -43,6 +43,7 @@ pub trait UserService {
         password: Option<String>,
     ) -> Result<User, mongodb::error::Error>;
     async fn delete_user(&self, name: &str) -> Result<(), mongodb::error::Error>;
+    async fn validate_user_name(&self, name: &str) -> Result<UserName, mongodb::error::Error>;
 }
 
 #[async_trait]
@@ -113,5 +114,12 @@ impl<T: UserRepository + Clone + Send + Sync> UserService for UserUsecase<T> {
                 std::io::Error::new(std::io::ErrorKind::NotFound, "User not found"),
             ))
         }
+    }
+
+    async fn validate_user_name(
+        &self,
+        name: &str,
+    ) -> Result<UserName, mongodb::error::Error> {
+        self.repository.validate_user_name(name).await
     }
 }
