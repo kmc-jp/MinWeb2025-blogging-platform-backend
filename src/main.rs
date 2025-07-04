@@ -42,7 +42,7 @@ async fn main() {
         "hoge".to_string(),
         "ほげ".to_string(),
         "プログラミング初心者".to_string(),
-        "hogehogehoge`gmail.com".to_string(),
+        "hogehogehoge@gmail.com".to_string(),
         false,
         "password456".to_string()
     ).await.unwrap();
