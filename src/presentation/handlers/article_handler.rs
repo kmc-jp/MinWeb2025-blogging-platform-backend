@@ -1,15 +1,26 @@
-use axum::{extract::{Path, State}, http::StatusCode, response::{IntoResponse, Response}, routing::{get, patch, post}, Json, Router};
+use axum::{
+    Json, Router,
+    extract::{Path, State},
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    routing::{get, patch, post},
+};
 use bson::oid::ObjectId;
 use serde::Deserialize;
 
-use crate::{domain::models::{article::Article, user::UserName}, usecase::article_usecase::ArticleService};
+use crate::{
+    domain::models::{article::Article, user_name::UserName},
+    usecase::article_usecase::ArticleService,
+};
 
 #[derive(Clone)]
 pub struct AppState<T: ArticleService> {
     pub article_service: T,
-} 
+}
 
-pub fn create_article_handler<T: ArticleService + Clone + Send + Sync + 'static>(todo_service: T) -> Router {
+pub fn create_article_handler<T: ArticleService + Clone + Send + Sync + 'static>(
+    todo_service: T,
+) -> Router {
     let app_state = AppState {
         article_service: todo_service,
     };
@@ -22,7 +33,7 @@ pub fn create_article_handler<T: ArticleService + Clone + Send + Sync + 'static>
         .route("/{user}/{id}", get(get_article_by_id::<T>))
         .route("/{user}/update/{id}", patch(update_article::<T>))
         .with_state(app_state)
-} 
+}
 
 #[derive(Deserialize, Debug, Clone)]
 struct GetArticlesParams {
@@ -34,15 +45,16 @@ async fn get_articles<T: ArticleService>(
     State(state): State<AppState<T>>,
     Json(params): Json<GetArticlesParams>,
 ) -> impl IntoResponse {
-    let articles = state.article_service.get_articles(params.from, params.max).await;
-    Json(articles)
+    state
+        .article_service
+        .get_articles(params.from, params.max)
+        .await
 }
 
 async fn default_get_articles<T: ArticleService>(
     State(state): State<AppState<T>>,
 ) -> impl IntoResponse {
-    let articles = state.article_service.get_articles(0, 100).await;
-    Json(articles)
+    state.article_service.get_articles(0, 100).await
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -54,8 +66,11 @@ async fn post_query_by_title<T: ArticleService>(
     State(state): State<AppState<T>>,
     Json(query): Json<PostQueryArticles>,
 ) -> impl IntoResponse {
-    let articles = state.article_service.query_by_title(query.title_query).await;
-    Json(articles)
+    let article_query = crate::domain::models::article_query::ArticleQuery::new(query.title_query);
+    state
+        .article_service
+        .search_articles(0, 100, article_query)
+        .await
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -64,30 +79,40 @@ struct PostNewArticle {
     content: String,
 }
 
-
 async fn post_new_article<T: ArticleService>(
     State(state): State<AppState<T>>,
     Path(user): Path<String>,
     Json(payload): Json<PostNewArticle>,
 ) -> impl IntoResponse {
-    let article = state.article_service.add_article(payload.title, UserName::try_from(user).unwrap(), payload.content).await;
-    Json(article)
+    match UserName::try_from(user) {
+        Ok(username) => {
+            state
+                .article_service
+                .create_article(payload.title, username, payload.content)
+                .await
+        }
+        Err(err) => (StatusCode::BAD_REQUEST, Json(err)).into_response(),
+    }
 }
 
 async fn get_articles_by_author<T: ArticleService>(
     State(state): State<AppState<T>>,
     Path(user): Path<String>,
 ) -> impl IntoResponse {
-    let articles = state.article_service.get_articles_by_author(UserName::try_from(user).unwrap()).await;
-    Json(articles)
+    match UserName::try_from(user) {
+        Ok(username) => {
+            let query = crate::domain::models::article_query::ArticleQuery::by_author(username);
+            state.article_service.search_articles(0, 100, query).await
+        }
+        Err(err) => (StatusCode::BAD_REQUEST, Json(err)).into_response(),
+    }
 }
 
 async fn get_article_by_id<T: ArticleService>(
     State(state): State<AppState<T>>,
     Path((_, id)): Path<(String, ObjectId)>,
 ) -> impl IntoResponse {
-    let article = state.article_service.get_article_by_id(id).await;
-    Json(article)
+    state.article_service.get_article_by_id(id).await
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -100,7 +125,9 @@ async fn update_article<T: ArticleService>(
     State(state): State<AppState<T>>,
     Path((_, id)): Path<(String, ObjectId)>,
     Json(payload): Json<UpdateArticle>,
-) -> Result<(), String> {
-    state.article_service.update_article(id, payload.title, payload.content).await
-        .map_err(|e| e.to_string())
+) -> impl IntoResponse {
+    state
+        .article_service
+        .update_article(id, payload.title, payload.content)
+        .await
 }
