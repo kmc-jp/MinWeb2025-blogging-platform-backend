@@ -26,8 +26,8 @@ impl UserRepository for InMemoryUserRepository {
         Ok(users.values().find(|user| user.name.to_string() == name).cloned())
     }
     async fn add_user(&self, name: String, display_name: String, intro: String, email: String, show_email: bool, pw_hash: Vec<u8>) -> Result<User, Error> {
-        // ユーザー名の重複チェック
         let mut users = self.users.write().unwrap();
+        // ユーザー名の重複チェック
         if users.values().any(|user| user.name.to_string() == name) {
             return Err(Error::custom("User name already exists"));
         }
@@ -47,14 +47,17 @@ impl UserRepository for InMemoryUserRepository {
         Ok(user)
     }
     async fn update_user(&self, id: ObjectId, name: Option<String>, display_name: Option<String>, intro: Option<String>, email: Option<String>, show_email: Option<bool>, pw_hash: Option<Vec<u8>>) -> Result<User, Error> {
-        // First, validate the new name if provided, before locking
-        let validated_name = if let Some(ref new_name) = name {
-            Some(self.validate_user_name(new_name).await.map_err(|e| Error::custom(e))?)
+        let mut users = self.users.write().unwrap();
+        // ユーザー名の重複チェック
+        let validated_name = if let Some(name) = name {
+            if users.values().any(|user| user.name.to_string() == name) {
+                return Err(Error::custom("User name already exists"));
+            }
+            Some(UserName::new(name))
         } else {
             None
         };
-
-        let mut users = self.users.write().unwrap();
+        // ユーザーの更新
         if let Some(user) = users.get_mut(&id) {
             if let Some(valid_name) = validated_name {
                 user.name = valid_name;

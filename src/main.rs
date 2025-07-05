@@ -45,7 +45,7 @@ async fn main() {
         "hogehogehoge@gmail.com".to_string(),
         false,
         "password456".to_string()
-    ).await.unwrap();
+    ).await.expect("Failed to create user 'hoge'");
 
     article_service.create_article(
         "Pythonはくそ".to_string(),
