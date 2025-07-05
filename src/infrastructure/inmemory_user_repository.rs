@@ -25,7 +25,7 @@ impl UserRepository for InMemoryUserRepository {
         let users = self.users.read().unwrap();
         Ok(users.values().find(|user| user.name.to_string() == name).cloned())
     }
-    async fn add_user(&self, name: String, display_name: String, intro: String, email: String, show_email: bool, password: String) -> Result<User, Error> {
+    async fn add_user(&self, name: String, display_name: String, intro: String, email: String, show_email: bool, pw_hash: Vec<u8>) -> Result<User, Error> {
         // ユーザー名の重複チェック
         let user_name;
         match self.validate_user_name(&name).await {
@@ -41,13 +41,13 @@ impl UserRepository for InMemoryUserRepository {
             intro,
             email,
             show_email,
-            pw_hash: password.into_bytes(), // ちゃんとしたハッシュ化は後で実装する
+            pw_hash,
             created_at: chrono::Utc::now(),
         };
         users.insert(id, user.clone());
         Ok(user)
     }
-    async fn update_user(&self, id: ObjectId, name: Option<String>, display_name: Option<String>, intro: Option<String>, email: Option<String>, show_email: Option<bool>, password: Option<String>) -> Result<User, Error> {
+    async fn update_user(&self, id: ObjectId, name: Option<String>, display_name: Option<String>, intro: Option<String>, email: Option<String>, show_email: Option<bool>, pw_hash: Option<Vec<u8>>) -> Result<User, Error> {
         // First, validate the new name if provided, before locking
         let validated_name = if let Some(ref new_name) = name {
             Some(self.validate_user_name(new_name).await.map_err(|e| Error::custom(e))?)
@@ -72,8 +72,8 @@ impl UserRepository for InMemoryUserRepository {
             if let Some(new_show_email) = show_email {
                 user.show_email = new_show_email;
             }
-            if let Some(new_password) = password {
-                user.pw_hash = new_password.into_bytes(); // ちゃんとしたハッシュ化は後で実装する
+            if let Some(new_password) = pw_hash {
+                user.pw_hash = new_password;
             }
             Ok(user.clone())
         } else {

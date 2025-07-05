@@ -27,14 +27,14 @@ pub trait UserRepository {
     /// name: 追加するユーザー名, display_name: 表示名, intro: 自己紹介, email: メールアドレス, show_email: メールアドレスを公開するかどうか, password: パスワード
     /// 追加が成功した場合はOk(User), 失敗した場合はError
     /// このメソッドは、ユーザー名の重複チェックを行う必要があります。
-    async fn add_user(&self, name: String, display_name: String, intro: String, email: String, show_email: bool, password: String) -> Result<User, Error>;
+    async fn add_user(&self, name: String, display_name: String, intro: String, email: String, show_email: bool, pw_hash: Vec<u8>) -> Result<User, Error>;
 
     /// ユーザー情報を部分的に更新する
     /// name: 更新するユーザー名, display_name: 新しい表示名, intro: 新しい自己紹介, email: 新しいメールアドレス, show_email: メールアドレスを公開するかどうか, password: 新しいパスワード
     /// 更新が成功した場合はOk(User), 失敗した場合はError
     /// このメソッドは、ユーザー名の重複チェックを行う必要があります。
     /// display_name, intro, email, show_email, passwordのいずれかがNoneの場合は、そのフィールドは更新しません。
-    async fn update_user(&self, id: ObjectId, name: Option<String>, display_name: Option<String>, intro: Option<String>, email: Option<String>, show_email: Option<bool>, password: Option<String>) -> Result<User, Error>;
+    async fn update_user(&self, id: ObjectId, name: Option<String>, display_name: Option<String>, intro: Option<String>, email: Option<String>, show_email: Option<bool>, pw_hash: Option<Vec<u8>>) -> Result<User, Error>;
 
     /// ユーザーを削除する
     /// id: ユーザーのObjectId

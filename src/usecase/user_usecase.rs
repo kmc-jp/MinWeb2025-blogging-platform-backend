@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use sha2::{Digest, Sha256};
 
 use crate::domain::{
     models::{user::User, user_name::UserName},
@@ -69,9 +70,8 @@ impl<T: UserRepository + Clone + Send + Sync> UserService for UserUsecase<T> {
         show_email: bool,
         password: String,
     ) -> Result<User, mongodb::error::Error> {
-        // TODO: パスワードのハッシュ化
         self.repository
-            .add_user(name, display_name, intro, email, show_email, password)
+            .add_user(name, display_name, intro, email, show_email, Sha256::digest(password.as_bytes()).to_vec())
             .await
     }
 
@@ -86,7 +86,6 @@ impl<T: UserRepository + Clone + Send + Sync> UserService for UserUsecase<T> {
     ) -> Result<User, mongodb::error::Error> {
         let user = self.repository.get_user_by_name(&name).await?;
         if let Some(user) = user {
-            // TODO: パスワードのハッシュ化
             self.repository
                 .update_user(
                     user.id,
@@ -95,7 +94,7 @@ impl<T: UserRepository + Clone + Send + Sync> UserService for UserUsecase<T> {
                     intro,
                     email,
                     show_email,
-                    password,
+                    password.and_then(|pw| Some(Sha256::digest(pw.as_bytes()).to_vec())),
                 )
                 .await
         } else {
