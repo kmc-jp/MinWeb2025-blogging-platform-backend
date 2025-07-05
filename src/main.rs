@@ -36,7 +36,7 @@ async fn main() {
         "otera65537@gmail.com".to_string(),
         true,
         "password123".to_string()
-    ).await.unwrap();
+    ).await.expect("Failed to create user 'furakuta'");
 
     let hoge = user_service.create_user(
         "hoge".to_string(),
