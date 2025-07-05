@@ -25,10 +25,6 @@ Content-Type: application/json
 }
 
 ###
-// 特定のユーザーが作成したすべての記事を取得
-GET http://localhost:3000/api/articles/furakuta
-
-###
 // 特定の記事部分的にを更新
 // 注意：記事IDは実際のデータベースに存在するものを使用してください。
 PATCH http://localhost:3000/api/articles/6867ef2ff7aec8ef55297484
