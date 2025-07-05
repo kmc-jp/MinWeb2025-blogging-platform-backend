@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 use mongodb::bson::oid::ObjectId;
 
-use crate::domain::{models::{article::Article, user::UserName}, repositorys::article_repository::ArticleRepository};
+use crate::domain::{models::{article::Article, user_name::UserName}, repositorys::article_repository::ArticleRepository};
+use crate::domain::models::article_query::ArticleQuery;
 
 #[derive(Clone)]
 pub struct ArticleUsecase<T: ArticleRepository + Clone> {
@@ -18,51 +19,83 @@ impl<T: ArticleRepository + Clone> ArticleUsecase<T> {
 
 #[async_trait]
 pub trait ArticleService {
-    /// 取得した記事のリストを返す
-    /// from: 取得開始位置, max: 最大取得数
-    async fn get_articles(&self, from: usize, max: usize) -> Vec<Article>;
-    /// タイトルを元に記事を検索する
-    /// タイトルに部分一致する記事のリストを返す
-    /// title_query: 検索するタイトルのクエリ
-    async fn query_by_title(&self, title_query: String) -> Vec<Article>;
-    /// 新しい記事を追加する
-    /// title: 記事のタイトル, author: 記事の著者, content: 記事の内容
-    /// 追加された記事を返す
-    async fn add_article(&self, title: String, author: UserName, content: String) -> Article;
-    /// 特定の著者が書いたすべての記事のリストを返す
-    async fn get_articles_by_author(&self, author: UserName) -> Vec<Article>;
-    /// IDを元に記事を取得する
-    /// id: 記事のID
-    async fn get_article_by_id(&self, id: ObjectId) -> Option<Article>;
-    /// 記事を更新する
-    /// id: 記事のID, title: 新しいタイトル, content: 新しい内容
-    /// 更新が成功した場合はOk(()), 失敗した場合はErr(String)
-    async fn update_article(&self, id: ObjectId, title: Option<String>, content: Option<String>) -> Result<(), String>;
+    async fn get_articles(
+        &self,
+        skip: usize,
+        limit: usize,
+    ) -> Result<Vec<Article>, mongodb::error::Error>;
+    async fn get_article_by_id(
+        &self,
+        id: ObjectId,
+    ) -> Result<Option<Article>, mongodb::error::Error>;
+    async fn create_article(
+        &self,
+        title: String,
+        author: UserName,
+        content: String,
+    ) -> Result<Article, mongodb::error::Error>;
+    async fn update_article(
+        &self,
+        id: ObjectId,
+        title: Option<String>,
+        content: Option<String>,
+    ) -> Result<Article, mongodb::error::Error>;
+    async fn delete_article(&self, id: ObjectId) -> Result<(), mongodb::error::Error>;
+    async fn search_articles(
+        &self,
+        skip: usize,
+        limit: usize,
+        query: ArticleQuery,
+    ) -> Result<Vec<Article>, mongodb::error::Error>;
 }
 
 #[async_trait]
 impl<T: ArticleRepository + Clone + Send + Sync> ArticleService for ArticleUsecase<T> {
-    async fn get_articles(&self, from: usize, max: usize) -> Vec<Article> {
-        self.repository.get_articles(from, max).await
+    async fn get_articles(
+        &self,
+        skip: usize,
+        limit: usize,
+    ) -> Result<Vec<Article>, mongodb::error::Error> {
+        self.repository.get_articles(skip, limit).await
     }
 
-    async fn query_by_title(&self, title_query: String) -> Vec<Article> {
-        self.repository.query_by_title(title_query).await
-    }
-
-    async fn add_article(&self, title: String, author: UserName, content: String) -> Article {
-        self.repository.add_article(title, author, content).await
-    }
-
-    async fn get_articles_by_author(&self, author: UserName) -> Vec<Article> {
-        self.repository.get_articles_by_author(author).await
-    }
-
-    async fn get_article_by_id(&self, id: ObjectId) -> Option<Article> {
+    async fn get_article_by_id(
+        &self,
+        id: ObjectId,
+    ) -> Result<Option<Article>, mongodb::error::Error> {
         self.repository.get_article_by_id(id).await
     }
 
-    async fn update_article(&self, id: ObjectId, title: Option<String>, content: Option<String>) -> Result<(), String> {
+    async fn create_article(
+        &self,
+        title: String,
+        author: UserName,
+        content: String,
+    ) -> Result<Article, mongodb::error::Error> {
+        self.repository.add_article(title, author, content).await
+    }
+
+    async fn update_article(
+        &self,
+        id: ObjectId,
+        title: Option<String>,
+        content: Option<String>,
+    ) -> Result<Article, mongodb::error::Error> {
         self.repository.update_article(id, title, content).await
+    }
+
+    async fn delete_article(&self, id: ObjectId) -> Result<(), mongodb::error::Error> {
+        self.repository.delete_article(id).await
+    }
+
+    async fn search_articles(
+        &self,
+        skip: usize,
+        limit: usize,
+        query: ArticleQuery,
+    ) -> Result<Vec<Article>, mongodb::error::Error> {
+        self.repository
+            .get_articles_with_query(skip, limit, query)
+            .await
     }
 }

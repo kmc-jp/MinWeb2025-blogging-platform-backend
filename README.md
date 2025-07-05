@@ -106,7 +106,7 @@ PATCH http://localhost:3000/api/articles/{id}
 Content-Type: application/json
 
 {
-    "title": "本文はそのままでタイトルだけを更新",
+    "title": "本文はそのままでタイトルだけを更新"
 }
 ```
 
@@ -161,7 +161,7 @@ GET http://localhost:3000/api/articles/search?author=akkey
     "_id": "ObjectId",
     "name": "ユーザー名",　// 一意であることが保証されており、記事のauthorフィールドに使用される　英数字のみからなる　後から変更はできない
     "display_name": "表示名", // ユーザーの表示名　絵文字なども使用可能
-    "introduction": "自己紹介", // ユーザーの自己紹介
+    "intro": "自己紹介", // ユーザーの自己紹介
     "email": "メールアドレス", // ユーザーのメールアドレス
     "show_email": true, // ユーザーのメールアドレスを公開するかどうか
     "pw_hash": "ハッシュ化されたパスワード", // ユーザーのパスワードはハッシュ化されて保存されます
@@ -209,7 +209,7 @@ POST通信に用いるJSONの形式
 {
     "name": "ユーザー名", // 一意であることが保証されており、記事のauthorフィールドに使用される　英数字のみからなる　後から変更はできない
     "display_name": "表示名", // ユーザーの表示名　絵文字なども使用可能
-    "introduction": "自己紹介", // ユーザーの自己紹介
+    "intro": "自己紹介", // ユーザーの自己紹介
     "email": "メールアドレス", // ユーザーのメールアドレス
     "show_email": true, // ユーザーのメールアドレスを公開するかどうか
     "password": "パスワード" // ユーザーのパスワード
@@ -218,15 +218,16 @@ POST通信に用いるJSONの形式
 
 使用例
 ```bash
-curl -X POST http://localhost:3000/api/users -H "Content-Type: application/json" -d '{"name": "hoge", "display_name": "Hoge User", "introduction": "Hello, I am Hoge.", "email": "hoge@gmail.com", "show_email": true, "password": "password123"}'
+curl -X POST http://localhost:3000/api/users -H "Content-Type: application/json" -d '{"name": "hoge", "display_name": "Hoge User", "intro": "Hello, I am Hoge.", "email": "hoge@gmail.com", "show_email": true, "password": "password123"}'
 ```
 ```http
 POST http://localhost:3000/api/users
 Content-Type: application/json
+
 {
     "name": "hoge",
     "display_name": "Hoge User",
-    "introduction": "Hello, I am Hoge.",
+    "intro": "Hello, I am Hoge.",
     "email": "hoge@gmail.com",
     "show_email": true,
     "password": "password123"
@@ -243,7 +244,7 @@ PATCH通信に用いるJSONの形式
 ```json
 {
     "display_name": "表示名", // ユーザーの表示名　絵文字なども使用可能
-    "introduction": "自己紹介", // ユーザーの自己紹介
+    "intro": "自己紹介", // ユーザーの自己紹介
     "email": "メールアドレス", // ユーザーのメールアドレス
     "show_email": true, // ユーザーのメールアドレスを公開するかどうか
     "password": "パスワード" // ユーザーのパスワード
@@ -254,14 +255,15 @@ PATCH通信に用いるJSONの形式
 
 使用例
 ```bash
-curl -X PATCH http://localhost:3000/api/users/{user_name} -H "Content-Type: application/json" -d '{"display_name": "新しい表示名", "introduction": "新しい自己紹介"}'
+curl -X PATCH http://localhost:3000/api/users/{user_name} -H "Content-Type: application/json" -d '{"display_name": "新しい表示名", "intro": "新しい自己紹介"}'
 ```
 ```http
 PATCH http://localhost:3000/api/users/furakuta
 Content-Type: application/json
+
 {
     "display_name": "🫠",
-    "introduction": "グッバイ物理学実験"
+    "intro": "グッバイ物理学実験"
 }
 ```
 
