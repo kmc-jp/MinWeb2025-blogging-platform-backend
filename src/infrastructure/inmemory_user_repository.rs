@@ -27,12 +27,11 @@ impl UserRepository for InMemoryUserRepository {
     }
     async fn add_user(&self, name: String, display_name: String, intro: String, email: String, show_email: bool, pw_hash: Vec<u8>) -> Result<User, Error> {
         // ユーザー名の重複チェック
-        let user_name;
-        match self.validate_user_name(&name).await {
-            Ok(valid_name) => user_name = valid_name,
-            Err(e) => return Err(Error::custom(e)),
-        }
         let mut users = self.users.write().unwrap();
+        if users.values().any(|user| user.name.to_string() == name) {
+            return Err(Error::custom("User name already exists"));
+        }
+        let user_name = UserName::new(name.to_string());
         let id = ObjectId::new();
         let user = User {
             id,
