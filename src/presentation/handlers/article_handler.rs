@@ -72,9 +72,8 @@ pub async fn get_article_by_id<T: ArticleService, U: UserService>(
     State(state): State<AppState<T, U>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let oid = match ObjectId::parse_str(&id) {
-        Ok(oid) => oid,
-        Err(_) => return (StatusCode::BAD_REQUEST, "Invalid ID format").into_response(),
+    let Ok(oid) = ObjectId::parse_str(&id) else {
+        return (StatusCode::BAD_REQUEST, "Invalid ID format").into_response()
     };
 
     match state.article_service.get_article_by_id(oid).await {
