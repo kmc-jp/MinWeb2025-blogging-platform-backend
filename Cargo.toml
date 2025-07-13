@@ -19,3 +19,4 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 dotenvy = "0.15.7"
 axum-login = "0.17.0"
 sha2 = "0.10.9"
+itertools = "0.14.0"
