@@ -1,6 +1,6 @@
 use crate::{
-    presentation::handlers::create_handler::AppState, usecase::article_usecase::ArticleService,
-    usecase::user_usecase::UserService,
+    presentation::handlers::create_handler::AppState,
+    domain::models::{article_service::ArticleService, user_service::UserService}
 };
 use axum::{
     extract::{Path, Query, State},

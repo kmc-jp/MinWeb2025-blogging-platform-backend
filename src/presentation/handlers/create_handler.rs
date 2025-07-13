@@ -4,7 +4,7 @@ use axum::{
 };
 
 use crate::{
-    usecase::{article_usecase::ArticleService, user_usecase::UserService},
+    domain::models::{article_service::ArticleService, user_service::UserService},
     presentation::handlers::{article_handler::*, user_handler::*},
 };
 

@@ -12,7 +12,12 @@ use tower::{BoxError, ServiceBuilder};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use crate::{infrastructure::{inmemory_article_repository::InMemoryArticleRepository, inmemory_user_repository::InMemoryUserRepository}, presentation::handlers::create_handler::create_handler, usecase::{article_usecase::{ArticleService, ArticleUsecase}, user_usecase::{UserService, UserUsecase}}};
+use crate::{
+    infrastructure::{inmemory_article_repository::InMemoryArticleRepository, inmemory_user_repository::InMemoryUserRepository},
+    presentation::handlers::create_handler::create_handler,
+    usecase::{article_usecase::ArticleUsecase, user_usecase::UserUsecase},
+    domain::models::{article_service::ArticleService, user_service::UserService}
+};
 
 #[tokio::main]
 async fn main() {

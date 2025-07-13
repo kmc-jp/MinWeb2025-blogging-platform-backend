@@ -8,9 +8,8 @@ use bson::oid::ObjectId;
 use serde::Deserialize;
 
 use crate::{
-    domain::models::article_query::ArticleQuery,
+    domain::models::{article_query::ArticleQuery, article_service::ArticleService, user_service::UserService},
     presentation::handlers::{create_handler::AppState, util::*},
-    usecase::{article_usecase::ArticleService, user_usecase::UserService},
 };
 
 #[derive(Deserialize, Debug, Clone)]
