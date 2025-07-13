@@ -28,10 +28,7 @@ impl UserRepository for InMemoryUserRepository {
     async fn add_user(&self, name: String, display_name: String, intro: String, email: String, show_email: bool, pw_hash: Vec<u8>) -> Result<User, Error> {
         let mut users = self.users.write().unwrap();
         // ユーザー名の重複チェック
-        if users.values().any(|user| user.name.inner() == name) {
-            return Err(Error::custom("User name already exists"));
-        }
-        let user_name = UserName::new(name.to_string());
+        let user_name = validate_user_name(&users, name)?;
         let id = ObjectId::new();
         let user = User {
             id,
@@ -48,11 +45,7 @@ impl UserRepository for InMemoryUserRepository {
     }
     async fn update_user(&self, id: ObjectId, name: Option<String>, display_name: Option<String>, intro: Option<String>, email: Option<String>, show_email: Option<bool>, pw_hash: Option<Vec<u8>>) -> Result<User, Error> {
         let mut users = self.users.write().unwrap();
-        // ユーザー名の重複チェック
-        if name.as_ref().is_some_and(|name| users.values().any(|user| user.name.inner() == name)) {
-            return Err(Error::custom("User name already exists"));
-        }
-        let validated_name = name.map(UserName::new);
+        let validated_name = name.map(|name| validate_user_name(&users, name)).transpose()?;
         // ユーザーの更新
         let user = users.get_mut(&id).ok_or_else(|| Error::custom("User not found"))?;
 
@@ -86,10 +79,14 @@ impl UserRepository for InMemoryUserRepository {
     }
     async fn validate_user_name(&self, name: &str) -> Result<UserName, Error> {
         let users = self.users.read().unwrap();
-        if users.values().any(|user| user.name.inner() == name) {
-            Err(Error::custom("User name already exists"))
-        } else {
-            Ok(UserName::new(name.to_string()))
-        }
+        validate_user_name(&users, name.to_string())
+    }
+}
+
+fn validate_user_name(users: &HashMap<ObjectId, User>, name: String) -> Result<UserName, Error> {
+    if users.values().any(|user| user.name.inner() == name) {
+        Err(Error::custom("User name already exists"))
+    } else {
+        Ok(UserName::new(name.to_string()))
     }
 }
