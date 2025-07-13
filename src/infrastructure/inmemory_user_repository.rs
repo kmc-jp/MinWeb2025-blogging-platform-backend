@@ -27,7 +27,6 @@ impl UserRepository for InMemoryUserRepository {
     }
     async fn add_user(&self, name: String, display_name: String, intro: String, email: String, show_email: bool, pw_hash: Vec<u8>) -> Result<User, Error> {
         let mut users = self.users.write().unwrap();
-        // ユーザー名の重複チェック
         let user_name = validate_user_name(&users, name)?;
         let id = ObjectId::new();
         let user = User {
@@ -84,6 +83,7 @@ impl UserRepository for InMemoryUserRepository {
 }
 
 fn validate_user_name(users: &HashMap<ObjectId, User>, name: String) -> Result<UserName, Error> {
+    //ユーザー名が重複していた場合はエラー
     if users.values().any(|user| user.name.inner() == name) {
         Err(Error::custom("User name already exists"))
     } else {
