@@ -12,6 +12,9 @@ impl UserName {
     pub fn to_string(&self) -> String {
         self.inner.clone()
     }
+    pub fn inner(&self) -> &str {
+        &self.inner
+    }
     /// UserNameを新しく作成する
     /// 必ず一意の名前を指定する必要があります
     /// UserRepositoryのvalidate_user_nameメソッドのみで使用されます

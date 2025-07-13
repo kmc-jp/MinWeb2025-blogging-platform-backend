@@ -23,12 +23,12 @@ impl UserRepository for InMemoryUserRepository {
     }
     async fn get_user_by_name(&self, name: &str) -> Result<Option<User>, Error> {
         let users = self.users.read().unwrap();
-        Ok(users.values().find(|user| user.name.to_string() == name).cloned())
+        Ok(users.values().find(|user| user.name.inner() == name).cloned())
     }
     async fn add_user(&self, name: String, display_name: String, intro: String, email: String, show_email: bool, pw_hash: Vec<u8>) -> Result<User, Error> {
         let mut users = self.users.write().unwrap();
         // ユーザー名の重複チェック
-        if users.values().any(|user| user.name.to_string() == name) {
+        if users.values().any(|user| user.name.inner() == name) {
             return Err(Error::custom("User name already exists"));
         }
         let user_name = UserName::new(name.to_string());
@@ -49,7 +49,7 @@ impl UserRepository for InMemoryUserRepository {
     async fn update_user(&self, id: ObjectId, name: Option<String>, display_name: Option<String>, intro: Option<String>, email: Option<String>, show_email: Option<bool>, pw_hash: Option<Vec<u8>>) -> Result<User, Error> {
         let mut users = self.users.write().unwrap();
         // ユーザー名の重複チェック
-        if name.as_ref().is_some_and(|name| users.values().any(|user| &user.name.to_string() == name)) {
+        if name.as_ref().is_some_and(|name| users.values().any(|user| user.name.inner() == name)) {
             return Err(Error::custom("User name already exists"));
         }
         let validated_name = name.map(UserName::new);
@@ -86,7 +86,7 @@ impl UserRepository for InMemoryUserRepository {
     }
     async fn validate_user_name(&self, name: &str) -> Result<UserName, Error> {
         let users = self.users.read().unwrap();
-        if users.values().any(|user| user.name.to_string() == name) {
+        if users.values().any(|user| user.name.inner() == name) {
             Err(Error::custom("User name already exists"))
         } else {
             Ok(UserName::new(name.to_string()))
