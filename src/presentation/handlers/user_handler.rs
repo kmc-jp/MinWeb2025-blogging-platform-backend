@@ -53,7 +53,7 @@ pub async fn create_user<T: ArticleService, U: UserService>(
     State(state): State<AppState<T, U>>,
     Json(payload): Json<CreateUserRequest>,
 ) -> Result<(StatusCode, Json<UserResponse>), StatusCode> {
-    match state
+    let user =  state
         .user_service
         .create_user(
             payload.name,
@@ -64,77 +64,58 @@ pub async fn create_user<T: ArticleService, U: UserService>(
             payload.password,
         )
         .await
-    {
-        Ok(user) => {
-            let user_response = UserResponse {
-                id: user.id,
-                name: user.name.to_string(),
-                display_name: user.display_name,
-                intro: user.intro,
-                email: if user.show_email {
-                    Some(user.email)
-                } else {
-                    None
-                },
-            };
-            Ok((StatusCode::CREATED, Json(user_response)))
-        }
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_response = UserResponse {
+        id: user.id,
+        name: user.name.to_string(),
+        display_name: user.display_name,
+        intro: user.intro,
+        email: if user.show_email { Some(user.email)} else { None },
+    };
+    Ok((StatusCode::CREATED, Json(user_response)))
 }
 
 pub async fn get_user<T: ArticleService, U: UserService>(
     State(state): State<AppState<T, U>>,
     Path(user_name): Path<String>,
 ) -> Result<Json<UserResponse>, StatusCode> {
-    match state.user_service.get_user_by_name(&user_name).await {
-        Ok(Some(user)) => {
-            let user_response = UserResponse {
-                id: user.id,
-                name: user.name.to_string(),
-                display_name: user.display_name,
-                intro: user.intro,
-                email: if user.show_email {
-                    Some(user.email)
-                } else {
-                    None
-                },
-            };
-            Ok(Json(user_response))
-        }
-        Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
+    let user =
+        state
+        .user_service
+        .get_user_by_name(&user_name)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or_else(|| StatusCode::NOT_FOUND)?;
+    let user_response = UserResponse {
+        id: user.id,
+        name: user.name.to_string(),
+        display_name: user.display_name,
+        intro: user.intro,
+        email: if user.show_email { Some(user.email) } else { None },
+    };
+    Ok(Json(user_response))
 }
 
 pub async fn list_users<T: ArticleService, U: UserService>(
     State(state): State<AppState<T, U>>,
     Query(params): Query<GetUsersParams>,
 ) -> Result<Json<Vec<UserResponse>>, StatusCode> {
-    match state
+    let users = state
         .user_service
         .get_users(params.skip, params.limit)
         .await
-    {
-        Ok(users) => {
-            let user_responses = users
-                .into_iter()
-                .map(|user| UserResponse {
-                    id: user.id,
-                    name: user.name.to_string(),
-                    display_name: user.display_name,
-                    intro: user.intro,
-                    email: if user.show_email {
-                        Some(user.email)
-                    } else {
-                        None
-                    },
-                })
-                .collect();
-            Ok(Json(user_responses))
-        }
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_responses = users
+        .into_iter()
+        .map(|user| UserResponse {
+            id: user.id,
+            name: user.name.to_string(),
+            display_name: user.display_name,
+            intro: user.intro,
+            email: if user.show_email { Some(user.email) } else { None },
+        })
+        .collect();
+    Ok(Json(user_responses))
 }
 
 pub async fn update_user<T: ArticleService, U: UserService>(
@@ -142,7 +123,7 @@ pub async fn update_user<T: ArticleService, U: UserService>(
     Path(user_name): Path<String>,
     Json(payload): Json<UpdateUserRequest>,
 ) -> Result<Json<UserResponse>, StatusCode> {
-    match state
+    let user = state
         .user_service
         .update_user(
             user_name,
@@ -153,23 +134,15 @@ pub async fn update_user<T: ArticleService, U: UserService>(
             payload.password,
         )
         .await
-    {
-        Ok(user) => {
-            let user_response = UserResponse {
-                id: user.id,
-                name: user.name.to_string(),
-                display_name: user.display_name,
-                intro: user.intro,
-                email: if user.show_email {
-                    Some(user.email)
-                } else {
-                    None
-                },
-            };
-            Ok(Json(user_response))
-        }
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_response = UserResponse {
+        id: user.id,
+        name: user.name.to_string(),
+        display_name: user.display_name,
+        intro: user.intro,
+        email: if user.show_email { Some(user.email) } else { None },
+    };
+    Ok(Json(user_response))
 }
 
 pub async fn delete_user<T: ArticleService, U: UserService>(

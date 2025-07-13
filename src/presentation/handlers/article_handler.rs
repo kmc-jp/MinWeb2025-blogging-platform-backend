@@ -54,7 +54,7 @@ pub async fn create_article<T: ArticleService, U: UserService>(
                 StatusCode::BAD_REQUEST,
                 format!("User '{}' not found", payload.author),
             )
-                .into_response()
+            .into_response()
         },
         Err(e) => return (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
     };
@@ -96,9 +96,8 @@ pub async fn update_article<T: ArticleService, U: UserService>(
     Path(id): Path<String>,
     Json(payload): Json<UpdateArticlePayload>,
 ) -> impl IntoResponse {
-    let oid = match ObjectId::parse_str(&id) {
-        Ok(oid) => oid,
-        Err(_) => return (StatusCode::BAD_REQUEST, "Invalid ID format").into_response(),
+    let Ok(oid) = ObjectId::parse_str(&id) else {
+        return (StatusCode::BAD_REQUEST, "Invalid ID format").into_response()
     };
 
     match state
@@ -118,9 +117,8 @@ pub async fn delete_article<T: ArticleService, U: UserService>(
     State(state): State<AppState<T, U>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let oid = match ObjectId::parse_str(&id) {
-        Ok(oid) => oid,
-        Err(_) => return (StatusCode::BAD_REQUEST, "Invalid ID format").into_response(),
+    let Ok(oid) = ObjectId::parse_str(&id) else {
+        return (StatusCode::BAD_REQUEST, "Invalid ID format").into_response()
     };
 
     match state.article_service.delete_article(oid).await {

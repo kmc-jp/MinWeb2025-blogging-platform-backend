@@ -49,38 +49,32 @@ impl UserRepository for InMemoryUserRepository {
     async fn update_user(&self, id: ObjectId, name: Option<String>, display_name: Option<String>, intro: Option<String>, email: Option<String>, show_email: Option<bool>, pw_hash: Option<Vec<u8>>) -> Result<User, Error> {
         let mut users = self.users.write().unwrap();
         // ユーザー名の重複チェック
-        let validated_name = if let Some(name) = name {
-            if users.values().any(|user| user.name.to_string() == name) {
-                return Err(Error::custom("User name already exists"));
-            }
-            Some(UserName::new(name))
-        } else {
-            None
-        };
-        // ユーザーの更新
-        if let Some(user) = users.get_mut(&id) {
-            if let Some(valid_name) = validated_name {
-                user.name = valid_name;
-            }
-            if let Some(new_display_name) = display_name {
-                user.display_name = new_display_name;
-            }
-            if let Some(new_intro) = intro {
-                user.intro = new_intro;
-            }
-            if let Some(new_email) = email {
-                user.email = new_email;
-            }
-            if let Some(new_show_email) = show_email {
-                user.show_email = new_show_email;
-            }
-            if let Some(new_password) = pw_hash {
-                user.pw_hash = new_password;
-            }
-            Ok(user.clone())
-        } else {
-            Err(Error::custom("User not found"))
+        if name.as_ref().is_some_and(|name| users.values().any(|user| &user.name.to_string() == name)) {
+            return Err(Error::custom("User name already exists"));
         }
+        let validated_name = name.map(UserName::new);
+        // ユーザーの更新
+        let user = users.get_mut(&id).ok_or_else(|| Error::custom("User not found"))?;
+
+        if let Some(valid_name) = validated_name {
+            user.name = valid_name;
+        }
+        if let Some(new_display_name) = display_name {
+            user.display_name = new_display_name;
+        }
+        if let Some(new_intro) = intro {
+            user.intro = new_intro;
+        }
+        if let Some(new_email) = email {
+            user.email = new_email;
+        }
+        if let Some(new_show_email) = show_email {
+            user.show_email = new_show_email;
+        }
+        if let Some(new_password) = pw_hash {
+            user.pw_hash = new_password;
+        }
+        Ok(user.clone())
     }
     async fn delete_user(&self, id: ObjectId) -> Result<(), Error> {
         let mut users = self.users.write().unwrap();

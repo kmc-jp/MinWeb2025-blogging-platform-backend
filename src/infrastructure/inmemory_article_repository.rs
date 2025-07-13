@@ -19,7 +19,7 @@ impl ArticleRepository for InMemoryArticleRepository {
     async fn get_articles(&self, skip: usize, limit: usize) -> Result<Vec<Article>, Error> {
         let articles = self.articles.read().unwrap();
         let mut articles_vec: Vec<Article> = articles.values().cloned().collect();
-        articles_vec.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+        articles_vec.sort_by_key(|article| article.created_at);
         Ok(articles_vec.into_iter().skip(skip).take(limit).collect())
     }
     async fn get_article_by_id(&self, id: ObjectId) -> Result<Option<Article>, Error> {
@@ -34,18 +34,15 @@ impl ArticleRepository for InMemoryArticleRepository {
     }
     async fn update_article(&self, id: ObjectId, title: Option<String>, content: Option<String>) -> Result<Article, Error> {
         let mut articles = self.articles.write().unwrap();
-        if let Some(article) = articles.get_mut(&id) {
-            if let Some(new_title) = title {
-                article.title = new_title;
-            }
-            if let Some(new_content) = content {
-                article.content = new_content;
-            }
-            article.updated_at = Utc::now();
-            Ok(article.clone())
-        } else {
-            Err(Error::custom("Article not found"))
+        let article = articles.get_mut(&id).ok_or_else(|| Error::custom("Article not found"))?;
+        if let Some(new_title) = title {
+            article.title = new_title;
         }
+        if let Some(new_content) = content {
+            article.content = new_content;
+        }
+        article.updated_at = Utc::now();
+        Ok(article.clone())
     }
     async fn delete_article(&self, id: ObjectId) -> Result<(), Error> {
         let mut articles = self.articles.write().unwrap();
@@ -65,7 +62,7 @@ impl ArticleRepository for InMemoryArticleRepository {
             .cloned()
             .collect();
         
-        filtered_articles.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+        filtered_articles.sort_by_key(|article| article.created_at);
         Ok(filtered_articles.into_iter().skip(skip).take(limit).collect())
     }
 }
