@@ -70,7 +70,7 @@ pub async fn create_user<T: ArticleService, U: UserService>(
         name: user.name.to_string(),
         display_name: user.display_name,
         intro: user.intro,
-        email: if user.show_email { Some(user.email)} else { None },
+        email: if user.show_email { Some(user.email) } else { None },
     };
     Ok((StatusCode::CREATED, Json(user_response)))
 }
