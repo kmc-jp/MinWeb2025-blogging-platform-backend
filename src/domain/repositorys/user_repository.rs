@@ -41,7 +41,8 @@ pub trait UserRepository {
     /// 更新が成功した場合はOk(()), 失敗した場合はError
     async fn delete_user(&self, id: ObjectId) -> Result<(), Error>;
 
-    /// ユーザー名が存在するかどうかをチェックする
-    /// name: チェックするユーザー名
+    /// ユーザー名が存在するかどうかをチェックし、存在しなかったときにnameをUserNameに変換して返す
+    /// name: UserNameに変換するユーザー名
+    /// ユーザー名が存在しない場合はOk(UserName), 存在する場合はErrorを返す
     async fn validate_user_name(&self, name: &str) -> Result<UserName, Error>;
 }
