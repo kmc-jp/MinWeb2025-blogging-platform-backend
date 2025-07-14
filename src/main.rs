@@ -12,7 +12,12 @@ use tower::{BoxError, ServiceBuilder};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use crate::{infrastructure::{inmemory_article_repository::InMemoryArticleRepository, inmemory_user_repository::InMemoryUserRepository}, presentation::handlers::create_handler::create_handler, usecase::{article_usecase::{ArticleService, ArticleUsecase}, user_usecase::{UserService, UserUsecase}}};
+use crate::{
+    infrastructure::{inmemory_article_repository::InMemoryArticleRepository, inmemory_user_repository::InMemoryUserRepository},
+    presentation::handlers::create_handler::create_handler,
+    usecase::{article_usecase::ArticleUsecase, user_usecase::UserUsecase},
+    domain::models::{article_service::ArticleService, user_service::UserService}
+};
 
 #[tokio::main]
 async fn main() {
@@ -28,7 +33,43 @@ async fn main() {
 
     let article_service = ArticleUsecase::new(InMemoryArticleRepository::default());
     let user_service = UserUsecase::new(InMemoryUserRepository::default());
+    
+    create_test_data(&article_service, &user_service).await;
+        
+    let app = Router::new()
+        .route("/", get(root_handler))
+        .layer(
+            ServiceBuilder::new()
+                .layer(HandleErrorLayer::new(|error: BoxError| async move {
+                    if error.is::<tower::timeout::error::Elapsed>() {
+                        Ok(StatusCode::REQUEST_TIMEOUT)
+                    } else {
+                        Err((
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            format!("Unhandled internal error: {error}"),
+                        ))
+                    }
+                }))
+                .timeout(Duration::from_secs(10))
+                .layer(TraceLayer::new_for_http())
+                .into_inner(),
+        )
+        .nest("/api", create_handler(
+            article_service,
+            user_service,
+        ));
 
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    tracing::debug!("listening on http://{}", listener.local_addr().unwrap());
+    axum::serve(listener, app).with_graceful_shutdown(async { signal::ctrl_c().await.unwrap() }).await.unwrap();
+}
+
+async fn root_handler() -> String {
+    tracing::debug!("Root handler called");
+    "Welcome to the Blogging Platform API!".to_string()
+}
+
+async fn create_test_data(article_service: &ArticleUsecase<InMemoryArticleRepository>, user_service: &UserUsecase<InMemoryUserRepository>) {
     let furakuta = user_service.create_user(
         "furakuta".to_string(),
         "ふらくた".to_string(),
@@ -77,36 +118,4 @@ async fn main() {
         hoge.name.clone(),
         "「ほげ」という言葉は、プログラミングの世界でよく使われる例え話やサンプルコードで見かけることがあります。特に日本のプログラマーの間では、何か具体的な意味を持たないプレースホルダーとして使われることが多いです。".to_string(),
     ).await.unwrap();
-        
-    let app = Router::new()
-        .route("/", get(root_handler))
-        .layer(
-            ServiceBuilder::new()
-                .layer(HandleErrorLayer::new(|error: BoxError| async move {
-                    if error.is::<tower::timeout::error::Elapsed>() {
-                        Ok(StatusCode::REQUEST_TIMEOUT)
-                    } else {
-                        Err((
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            format!("Unhandled internal error: {error}"),
-                        ))
-                    }
-                }))
-                .timeout(Duration::from_secs(10))
-                .layer(TraceLayer::new_for_http())
-                .into_inner(),
-        )
-        .nest("/api", create_handler(
-            article_service,
-            user_service,
-        ));
-
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    tracing::debug!("listening on http://{}", listener.local_addr().unwrap());
-    axum::serve(listener, app).with_graceful_shutdown(async { signal::ctrl_c().await.unwrap() }).await.unwrap();
-}
-
-async fn root_handler() -> String {
-    tracing::debug!("Root handler called");
-    "Welcome to the Blogging Platform API!".to_string()
 }

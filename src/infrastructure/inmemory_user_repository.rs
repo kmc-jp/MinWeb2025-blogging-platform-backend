@@ -1,9 +1,8 @@
 use std::{collections::HashMap, sync::{Arc, RwLock}};
-use mongodb::error::Error;
 use bson::oid::ObjectId;
 use async_trait::async_trait;
 
-use crate::domain::{models::{user::User, user_name::UserName}, repositorys::user_repository::UserRepository};
+use crate::domain::{models::{user::User, user_name::UserName, user_service::UserServiceError}, repositorys::user_repository::UserRepository};
 
 #[derive(Debug, Clone, Default)]
 pub struct InMemoryUserRepository {
@@ -12,26 +11,21 @@ pub struct InMemoryUserRepository {
 
 #[async_trait]
 impl UserRepository for InMemoryUserRepository {
-    async fn get_users(&self, skip: usize, limit: usize) -> Result<Vec<User>, Error> {
+    async fn get_users(&self, skip: usize, limit: usize) -> Result<Vec<User>, UserServiceError> {
         let users = self.users.read().unwrap();
-        let users_vec: Vec<User> = users.values().cloned().collect();
-        Ok(users_vec.into_iter().skip(skip).take(limit).collect())
+        Ok(users.values().cloned().skip(skip).take(limit).collect())
     }
-    async fn get_user_by_id(&self, id: ObjectId) -> Result<Option<User>, Error> {
+    async fn get_user_by_id(&self, id: ObjectId) -> Result<User, UserServiceError> {
         let users = self.users.read().unwrap();
-        Ok(users.get(&id).cloned())
+        users.get(&id).cloned().ok_or_else(|| UserServiceError::UserNotFound)
     }
-    async fn get_user_by_name(&self, name: &str) -> Result<Option<User>, Error> {
+    async fn get_user_by_name(&self, name: &str) -> Result<User, UserServiceError> {
         let users = self.users.read().unwrap();
-        Ok(users.values().find(|user| user.name.to_string() == name).cloned())
+        users.values().find(|user| user.name.inner() == name).cloned().ok_or_else(|| UserServiceError::UserNotFound)
     }
-    async fn add_user(&self, name: String, display_name: String, intro: String, email: String, show_email: bool, pw_hash: Vec<u8>) -> Result<User, Error> {
+    async fn add_user(&self, name: String, display_name: String, intro: String, email: String, show_email: bool, pw_hash: Vec<u8>) -> Result<User, UserServiceError> {
         let mut users = self.users.write().unwrap();
-        // ユーザー名の重複チェック
-        if users.values().any(|user| user.name.to_string() == name) {
-            return Err(Error::custom("User name already exists"));
-        }
-        let user_name = UserName::new(name.to_string());
+        let user_name = validate_user_name(&users, name)?;
         let id = ObjectId::new();
         let user = User {
             id,
@@ -46,56 +40,51 @@ impl UserRepository for InMemoryUserRepository {
         users.insert(id, user.clone());
         Ok(user)
     }
-    async fn update_user(&self, id: ObjectId, name: Option<String>, display_name: Option<String>, intro: Option<String>, email: Option<String>, show_email: Option<bool>, pw_hash: Option<Vec<u8>>) -> Result<User, Error> {
+    async fn update_user(&self, id: ObjectId, name: Option<String>, display_name: Option<String>, intro: Option<String>, email: Option<String>, show_email: Option<bool>, pw_hash: Option<Vec<u8>>) -> Result<User, UserServiceError> {
         let mut users = self.users.write().unwrap();
-        // ユーザー名の重複チェック
-        let validated_name = if let Some(name) = name {
-            if users.values().any(|user| user.name.to_string() == name) {
-                return Err(Error::custom("User name already exists"));
-            }
-            Some(UserName::new(name))
-        } else {
-            None
-        };
+        let validated_name = name.map(|name| validate_user_name(&users, name)).transpose()?;
         // ユーザーの更新
-        if let Some(user) = users.get_mut(&id) {
-            if let Some(valid_name) = validated_name {
-                user.name = valid_name;
-            }
-            if let Some(new_display_name) = display_name {
-                user.display_name = new_display_name;
-            }
-            if let Some(new_intro) = intro {
-                user.intro = new_intro;
-            }
-            if let Some(new_email) = email {
-                user.email = new_email;
-            }
-            if let Some(new_show_email) = show_email {
-                user.show_email = new_show_email;
-            }
-            if let Some(new_password) = pw_hash {
-                user.pw_hash = new_password;
-            }
-            Ok(user.clone())
-        } else {
-            Err(Error::custom("User not found"))
+        let user = users.get_mut(&id).ok_or_else(|| UserServiceError::UserNotFound)?;
+
+        if let Some(valid_name) = validated_name {
+            user.name = valid_name;
         }
+        if let Some(new_display_name) = display_name {
+            user.display_name = new_display_name;
+        }
+        if let Some(new_intro) = intro {
+            user.intro = new_intro;
+        }
+        if let Some(new_email) = email {
+            user.email = new_email;
+        }
+        if let Some(new_show_email) = show_email {
+            user.show_email = new_show_email;
+        }
+        if let Some(new_password) = pw_hash {
+            user.pw_hash = new_password;
+        }
+        Ok(user.clone())
     }
-    async fn delete_user(&self, id: ObjectId) -> Result<(), Error> {
+    async fn delete_user(&self, id: ObjectId) -> Result<(), UserServiceError> {
         let mut users = self.users.write().unwrap();
         if users.remove(&id).is_some() {
             Ok(())
         } else {
-            Err(Error::custom("User not found"))
+            Err(UserServiceError::UserNotFound)
         }
     }
-    async fn validate_user_name(&self, name: &str) -> Result<UserName, Error> {
+    async fn validate_user_name(&self, name: &str) -> Result<UserName, UserServiceError> {
         let users = self.users.read().unwrap();
-        if users.values().any(|user| user.name.to_string() == name) {
-            Err(Error::custom("User name already exists"))
-        } else {
-            Ok(UserName::new(name.to_string()))
-        }
+        validate_user_name(&users, name.to_string())
+    }
+}
+
+fn validate_user_name(users: &HashMap<ObjectId, User>, name: String) -> Result<UserName, UserServiceError> {
+    //ユーザー名が重複していた場合はエラー
+    if users.values().any(|user| user.name.inner() == name) {
+        Err(UserServiceError::UserAlreadyExists)
+    } else {
+        Ok(UserName::new(name))
     }
 }
