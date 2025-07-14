@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use mongodb::bson::oid::ObjectId;
 
-use crate::domain::{models::{article::Article, user_name::UserName, article_service::ArticleService}, repositorys::article_repository::ArticleRepository};
+use crate::domain::{models::{article::Article, article_service::ArticleService, user_name::UserName, article_service::ArticleServiceError}, repositorys::article_repository::ArticleRepository};
 use crate::domain::models::article_query::ArticleQuery;
 
 #[derive(Clone)]
@@ -21,14 +21,14 @@ impl<A: ArticleRepository + Clone + Send + Sync> ArticleService for ArticleUseca
         &self,
         skip: usize,
         limit: usize,
-    ) -> Result<Vec<Article>, mongodb::error::Error> {
+    ) -> Result<Vec<Article>, ArticleServiceError> {
         self.repository.get_articles(skip, limit).await
     }
 
     async fn get_article_by_id(
         &self,
         id: ObjectId,
-    ) -> Result<Option<Article>, mongodb::error::Error> {
+    ) -> Result<Option<Article>, ArticleServiceError> {
         self.repository.get_article_by_id(id).await
     }
 
@@ -37,7 +37,7 @@ impl<A: ArticleRepository + Clone + Send + Sync> ArticleService for ArticleUseca
         title: String,
         author: UserName,
         content: String,
-    ) -> Result<Article, mongodb::error::Error> {
+    ) -> Result<Article, ArticleServiceError> {
         self.repository.add_article(title, author, content).await
     }
 
@@ -46,11 +46,11 @@ impl<A: ArticleRepository + Clone + Send + Sync> ArticleService for ArticleUseca
         id: ObjectId,
         title: Option<String>,
         content: Option<String>,
-    ) -> Result<Article, mongodb::error::Error> {
+    ) -> Result<Article, ArticleServiceError> {
         self.repository.update_article(id, title, content).await
     }
 
-    async fn delete_article(&self, id: ObjectId) -> Result<(), mongodb::error::Error> {
+    async fn delete_article(&self, id: ObjectId) -> Result<(), ArticleServiceError> {
         self.repository.delete_article(id).await
     }
 
@@ -59,7 +59,7 @@ impl<A: ArticleRepository + Clone + Send + Sync> ArticleService for ArticleUseca
         skip: usize,
         limit: usize,
         query: ArticleQuery,
-    ) -> Result<Vec<Article>, mongodb::error::Error> {
+    ) -> Result<Vec<Article>, ArticleServiceError> {
         self.repository
             .get_articles_with_query(skip, limit, query)
             .await

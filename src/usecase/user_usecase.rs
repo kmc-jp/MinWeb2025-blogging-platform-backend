@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sha2::{Digest, Sha256};
 
 use crate::domain::{
-    models::{user::User, user_name::UserName, user_service::UserService},
+    models::{user::User, user_name::UserName, user_service::{UserService, UserServiceError}},
     repositorys::user_repository::UserRepository,
 };
 
@@ -23,11 +23,11 @@ impl<U: UserRepository + Clone + Send + Sync> UserService for UserUsecase<U> {
         &self,
         skip: usize,
         limit: usize,
-    ) -> Result<Vec<User>, mongodb::error::Error> {
+    ) -> Result<Vec<User>, UserServiceError> {
         self.repository.get_users(skip, limit).await
     }
 
-    async fn get_user_by_name(&self, name: &str) -> Result<Option<User>, mongodb::error::Error> {
+    async fn get_user_by_name(&self, name: &str) -> Result<Option<User>, UserServiceError> {
         self.repository.get_user_by_name(name).await
     }
 
@@ -39,7 +39,7 @@ impl<U: UserRepository + Clone + Send + Sync> UserService for UserUsecase<U> {
         email: String,
         show_email: bool,
         password: String,
-    ) -> Result<User, mongodb::error::Error> {
+    ) -> Result<User, UserServiceError> {
         self.repository
             .add_user(name, display_name, intro, email, show_email, Sha256::digest(password.as_bytes()).to_vec())
             .await
@@ -53,10 +53,8 @@ impl<U: UserRepository + Clone + Send + Sync> UserService for UserUsecase<U> {
         email: Option<String>,
         show_email: Option<bool>,
         password: Option<String>,
-    ) -> Result<User, mongodb::error::Error> {
-        let user = self.repository.get_user_by_name(&name).await?.ok_or_else(|| mongodb::error::Error::from(
-            std::io::Error::new(std::io::ErrorKind::NotFound, "User not found"),
-        ))?;
+    ) -> Result<User, UserServiceError> {
+        let user = self.repository.get_user_by_name(&name).await?.ok_or_else(|| UserServiceError::UserNotFound)?;
         self.repository
             .update_user(
                 user.id,
@@ -70,17 +68,15 @@ impl<U: UserRepository + Clone + Send + Sync> UserService for UserUsecase<U> {
             .await
     }
 
-    async fn delete_user(&self, name: &str) -> Result<(), mongodb::error::Error> {
-        let user = self.repository.get_user_by_name(name).await?.ok_or_else(|| mongodb::error::Error::from(
-            std::io::Error::new(std::io::ErrorKind::NotFound, "User not found"),
-        ))?;
+    async fn delete_user(&self, name: &str) -> Result<(), UserServiceError> {
+        let user = self.repository.get_user_by_name(name).await?.ok_or_else(|| UserServiceError::UserNotFound)?;
         self.repository.delete_user(user.id).await
     }
 
     async fn validate_user_name(
         &self,
         name: &str,
-    ) -> Result<UserName, mongodb::error::Error> {
+    ) -> Result<UserName, UserServiceError> {
         self.repository.validate_user_name(name).await
     }
 }
