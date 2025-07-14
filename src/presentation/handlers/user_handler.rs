@@ -1,6 +1,6 @@
 use crate::{
     presentation::handlers::create_handler::AppState,
-    domain::models::{article_service::ArticleService, user_service::UserService}
+    domain::models::{article_service::ArticleService, user_service::{UserService, UserServiceError}},
 };
 use axum::{
     extract::{Path, Query, State},
@@ -84,8 +84,7 @@ pub async fn get_user<A: ArticleService, U: UserService>(
         .user_service
         .get_user_by_name(&user_name)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .ok_or_else(|| StatusCode::NOT_FOUND)?;
+        .map_err(|e| if matches!(e, UserServiceError::UserNotFound) { StatusCode::NOT_FOUND } else { StatusCode::INTERNAL_SERVER_ERROR })?;
     let user_response = UserResponse {
         id: user.id,
         name: user.name.to_string(),

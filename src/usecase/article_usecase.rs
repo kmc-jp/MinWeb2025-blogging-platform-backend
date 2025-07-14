@@ -28,7 +28,7 @@ impl<A: ArticleRepository + Clone + Send + Sync> ArticleService for ArticleUseca
     async fn get_article_by_id(
         &self,
         id: ObjectId,
-    ) -> Result<Option<Article>, ArticleServiceError> {
+    ) -> Result<Article, ArticleServiceError> {
         self.repository.get_article_by_id(id).await
     }
 

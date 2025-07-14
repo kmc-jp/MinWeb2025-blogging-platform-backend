@@ -13,7 +13,7 @@ pub trait ArticleService {
     async fn get_article_by_id(
         &self,
         id: ObjectId,
-    ) -> Result<Option<Article>, ArticleServiceError>;
+    ) -> Result<Article, ArticleServiceError>;
     async fn create_article(
         &self,
         title: String,

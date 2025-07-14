@@ -8,7 +8,7 @@ use bson::oid::ObjectId;
 use serde::Deserialize;
 
 use crate::{
-    domain::models::{article_query::ArticleQuery, article_service::ArticleService, user_service::UserService},
+    domain::models::{article_query::ArticleQuery, article_service::{ArticleService, ArticleServiceError}, user_service::{UserService, UserServiceError}},
     presentation::handlers::{create_handler::AppState, util::*},
 };
 
@@ -47,14 +47,13 @@ pub async fn create_article<A: ArticleService, U: UserService>(
     Json(payload): Json<CreateArticlePayload>,
 ) -> impl IntoResponse {
     let author_name = match state.user_service.get_user_by_name(&payload.author).await {
-        Ok(Some(user)) => user.name,
-        Ok(None) => {
+        Ok(user) => user.name,
+        Err(UserServiceError::UserNotFound) =>
             return (
                 StatusCode::BAD_REQUEST,
                 format!("User '{}' not found", payload.author),
             )
-            .into_response()
-        },
+            .into_response(),
         Err(e) => return (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
     };
 
@@ -77,8 +76,8 @@ pub async fn get_article_by_id<A: ArticleService, U: UserService>(
     };
 
     match state.article_service.get_article_by_id(oid).await {
-        Ok(Some(article)) => (StatusCode::OK, Json(article)).into_response(),
-        Ok(None) => (StatusCode::NOT_FOUND).into_response(),
+        Ok(article) => (StatusCode::OK, Json(article)).into_response(),
+        Err(ArticleServiceError::ArticleNotFound) => (StatusCode::NOT_FOUND, "Article not found").into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }

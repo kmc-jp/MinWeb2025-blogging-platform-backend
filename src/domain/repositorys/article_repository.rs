@@ -14,12 +14,11 @@ pub trait ArticleRepository {
 
     /// IDを元に記事を取得する
     /// `id`: 記事のID
-    /// 記事が存在しない場合は`Ok(None)`を返す
-    /// 記事が存在する場合は`Ok(Some(Article))`を返す
+    /// 記事が存在する場合は`Ok(Article)`を返す
     /// 
     /// # Errors
-    /// データベースへのアクセスに失敗した場合は`Err`を返す
-    async fn get_article_by_id(&self, id: ObjectId) -> Result<Option<Article>, ArticleServiceError>;
+    /// 記事が存在しない場合や、データベースへのアクセスに失敗した場合は`Err`を返す
+    async fn get_article_by_id(&self, id: ObjectId) -> Result<Article, ArticleServiceError>;
 
     /// 新しい記事を追加する
     /// `title`: 記事のタイトル, `author`: 記事の著者, `content`: 記事の内容

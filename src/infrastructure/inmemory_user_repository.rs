@@ -15,13 +15,13 @@ impl UserRepository for InMemoryUserRepository {
         let users = self.users.read().unwrap();
         Ok(users.values().cloned().skip(skip).take(limit).collect())
     }
-    async fn get_user_by_id(&self, id: ObjectId) -> Result<Option<User>, UserServiceError> {
+    async fn get_user_by_id(&self, id: ObjectId) -> Result<User, UserServiceError> {
         let users = self.users.read().unwrap();
-        Ok(users.get(&id).cloned())
+        users.get(&id).cloned().ok_or_else(|| UserServiceError::UserNotFound)
     }
-    async fn get_user_by_name(&self, name: &str) -> Result<Option<User>, UserServiceError> {
+    async fn get_user_by_name(&self, name: &str) -> Result<User, UserServiceError> {
         let users = self.users.read().unwrap();
-        Ok(users.values().find(|user| user.name.inner() == name).cloned())
+        users.values().find(|user| user.name.inner() == name).cloned().ok_or_else(|| UserServiceError::UserNotFound)
     }
     async fn add_user(&self, name: String, display_name: String, intro: String, email: String, show_email: bool, pw_hash: Vec<u8>) -> Result<User, UserServiceError> {
         let mut users = self.users.write().unwrap();

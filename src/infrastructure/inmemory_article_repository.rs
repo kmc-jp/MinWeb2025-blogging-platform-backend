@@ -22,9 +22,9 @@ impl ArticleRepository for InMemoryArticleRepository {
         articles_vec.sort_by_key(|article| article.created_at);
         Ok(articles_vec.into_iter().skip(skip).take(limit).collect())
     }
-    async fn get_article_by_id(&self, id: ObjectId) -> Result<Option<Article>, ArticleServiceError> {
+    async fn get_article_by_id(&self, id: ObjectId) -> Result<Article, ArticleServiceError> {
         let articles = self.articles.read().unwrap();
-        Ok(articles.get(&id).cloned())
+        articles.get(&id).cloned().ok_or_else(|| ArticleServiceError::ArticleNotFound)
     }
     async fn add_article(&self ,title: String, author: UserName, content: String) -> Result<Article, ArticleServiceError> {
         let mut articles = self.articles.write().unwrap();

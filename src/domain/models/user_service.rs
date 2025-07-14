@@ -9,7 +9,7 @@ pub trait UserService {
         skip: usize,
         limit: usize,
     ) -> Result<Vec<User>, UserServiceError>;
-    async fn get_user_by_name(&self, name: &str) -> Result<Option<User>, UserServiceError>;
+    async fn get_user_by_name(&self, name: &str) -> Result<User, UserServiceError>;
     async fn create_user(
         &self,
         name: String,

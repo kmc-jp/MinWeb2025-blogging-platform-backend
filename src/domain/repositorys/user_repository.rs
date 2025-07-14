@@ -17,7 +17,7 @@ pub trait UserRepository {
     /// ユーザーが存在する場合は`Ok(Some(User))`を返す
     /// # Errors
     /// データベースへのアクセスに失敗した場合は`Err`を返す
-    async fn get_user_by_id(&self, id: ObjectId) -> Result<Option<User>, UserServiceError>;
+    async fn get_user_by_id(&self, id: ObjectId) -> Result<User, UserServiceError>;
 
     /// ユーザー名を元にユーザー情報を取得する
     /// `user_name`: ユーザー名
@@ -25,7 +25,7 @@ pub trait UserRepository {
     /// ユーザーが存在する場合は`Ok(Some(User))`を返す
     /// # Errors
     /// データベースへのアクセスに失敗した場合は`Err`を返す
-    async fn get_user_by_name(&self, name: &str) -> Result<Option<User>, UserServiceError>;
+    async fn get_user_by_name(&self, name: &str) -> Result<User, UserServiceError>;
 
     // 将来的にはここの入力を構造体にまとめるかも
     /// 新しいユーザーを追加する

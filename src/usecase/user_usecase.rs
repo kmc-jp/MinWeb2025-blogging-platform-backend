@@ -27,7 +27,7 @@ impl<U: UserRepository + Clone + Send + Sync> UserService for UserUsecase<U> {
         self.repository.get_users(skip, limit).await
     }
 
-    async fn get_user_by_name(&self, name: &str) -> Result<Option<User>, UserServiceError> {
+    async fn get_user_by_name(&self, name: &str) -> Result<User, UserServiceError> {
         self.repository.get_user_by_name(name).await
     }
 
@@ -54,7 +54,7 @@ impl<U: UserRepository + Clone + Send + Sync> UserService for UserUsecase<U> {
         show_email: Option<bool>,
         password: Option<String>,
     ) -> Result<User, UserServiceError> {
-        let user = self.repository.get_user_by_name(&name).await?.ok_or_else(|| UserServiceError::UserNotFound)?;
+        let user = self.repository.get_user_by_name(&name).await?;
         self.repository
             .update_user(
                 user.id,
@@ -69,7 +69,7 @@ impl<U: UserRepository + Clone + Send + Sync> UserService for UserUsecase<U> {
     }
 
     async fn delete_user(&self, name: &str) -> Result<(), UserServiceError> {
-        let user = self.repository.get_user_by_name(name).await?.ok_or_else(|| UserServiceError::UserNotFound)?;
+        let user = self.repository.get_user_by_name(name).await?;
         self.repository.delete_user(user.id).await
     }
 
