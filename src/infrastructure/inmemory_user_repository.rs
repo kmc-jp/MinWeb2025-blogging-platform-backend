@@ -14,8 +14,7 @@ pub struct InMemoryUserRepository {
 impl UserRepository for InMemoryUserRepository {
     async fn get_users(&self, skip: usize, limit: usize) -> Result<Vec<User>, Error> {
         let users = self.users.read().unwrap();
-        let users_vec: Vec<User> = users.values().cloned().collect();
-        Ok(users_vec.into_iter().skip(skip).take(limit).collect())
+        Ok(users.values().cloned().skip(skip).take(limit).collect())
     }
     async fn get_user_by_id(&self, id: ObjectId) -> Result<Option<User>, Error> {
         let users = self.users.read().unwrap();
