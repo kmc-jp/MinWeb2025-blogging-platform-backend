@@ -42,8 +42,8 @@ pub struct CreateArticlePayload {
 }
 
 // この関数はUserAppStateに依存していることに注意してください
-pub async fn create_article<T: ArticleService, U: UserService>(
-    State(state): State<AppState<T, U>>,
+pub async fn create_article<A: ArticleService, U: UserService>(
+    State(state): State<AppState<A, U>>,
     Json(payload): Json<CreateArticlePayload>,
 ) -> impl IntoResponse {
     let author_name = match state.user_service.get_user_by_name(&payload.author).await {
@@ -68,8 +68,8 @@ pub async fn create_article<T: ArticleService, U: UserService>(
     }
 }
 
-pub async fn get_article_by_id<T: ArticleService, U: UserService>(
-    State(state): State<AppState<T, U>>,
+pub async fn get_article_by_id<A: ArticleService, U: UserService>(
+    State(state): State<AppState<A, U>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     let Ok(oid) = ObjectId::parse_str(&id) else {
@@ -89,8 +89,8 @@ pub struct UpdateArticlePayload {
     content: Option<String>,
 }
 
-pub async fn update_article<T: ArticleService, U: UserService>(
-    State(state): State<AppState<T, U>>,
+pub async fn update_article<A: ArticleService, U: UserService>(
+    State(state): State<AppState<A, U>>,
     Path(id): Path<String>,
     Json(payload): Json<UpdateArticlePayload>,
 ) -> impl IntoResponse {
@@ -111,8 +111,8 @@ pub async fn update_article<T: ArticleService, U: UserService>(
     }
 }
 
-pub async fn delete_article<T: ArticleService, U: UserService>(
-    State(state): State<AppState<T, U>>,
+pub async fn delete_article<A: ArticleService, U: UserService>(
+    State(state): State<AppState<A, U>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     let Ok(oid) = ObjectId::parse_str(&id) else {
@@ -135,8 +135,8 @@ pub struct SearchParams {
     limit: usize,
 }
 
-pub async fn search_articles<T: ArticleService, U: UserService>(
-    State(state): State<AppState<T, U>>,
+pub async fn search_articles<A: ArticleService, U: UserService>(
+    State(state): State<AppState<A, U>>,
     Query(params): Query<SearchParams>,
 ) -> impl IntoResponse {
     let query = ArticleQuery {

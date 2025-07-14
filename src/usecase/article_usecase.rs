@@ -5,18 +5,18 @@ use crate::domain::{models::{article::Article, user_name::UserName, article_serv
 use crate::domain::models::article_query::ArticleQuery;
 
 #[derive(Clone)]
-pub struct ArticleUsecase<T: ArticleRepository + Clone> {
-    repository: T,
+pub struct ArticleUsecase<A: ArticleRepository + Clone> {
+    repository: A,
 }
 
-impl<T: ArticleRepository + Clone> ArticleUsecase<T> {
-    pub fn new(repository: T) -> Self {
+impl<A: ArticleRepository + Clone> ArticleUsecase<A> {
+    pub fn new(repository: A) -> Self {
         ArticleUsecase { repository }
     }
 }
 
 #[async_trait]
-impl<T: ArticleRepository + Clone + Send + Sync> ArticleService for ArticleUsecase<T> {
+impl<A: ArticleRepository + Clone + Send + Sync> ArticleService for ArticleUsecase<A> {
     async fn get_articles(
         &self,
         skip: usize,

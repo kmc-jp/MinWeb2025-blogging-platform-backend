@@ -49,8 +49,8 @@ pub struct GetUsersParams {
     limit: usize,
 }
 
-pub async fn create_user<T: ArticleService, U: UserService>(
-    State(state): State<AppState<T, U>>,
+pub async fn create_user<A: ArticleService, U: UserService>(
+    State(state): State<AppState<A, U>>,
     Json(payload): Json<CreateUserRequest>,
 ) -> Result<(StatusCode, Json<UserResponse>), StatusCode> {
     let user =  state
@@ -75,8 +75,8 @@ pub async fn create_user<T: ArticleService, U: UserService>(
     Ok((StatusCode::CREATED, Json(user_response)))
 }
 
-pub async fn get_user<T: ArticleService, U: UserService>(
-    State(state): State<AppState<T, U>>,
+pub async fn get_user<A: ArticleService, U: UserService>(
+    State(state): State<AppState<A, U>>,
     Path(user_name): Path<String>,
 ) -> Result<Json<UserResponse>, StatusCode> {
     let user =
@@ -96,8 +96,8 @@ pub async fn get_user<T: ArticleService, U: UserService>(
     Ok(Json(user_response))
 }
 
-pub async fn list_users<T: ArticleService, U: UserService>(
-    State(state): State<AppState<T, U>>,
+pub async fn list_users<A: ArticleService, U: UserService>(
+    State(state): State<AppState<A, U>>,
     Query(params): Query<GetUsersParams>,
 ) -> Result<Json<Vec<UserResponse>>, StatusCode> {
     let users = state
@@ -118,8 +118,8 @@ pub async fn list_users<T: ArticleService, U: UserService>(
     Ok(Json(user_responses))
 }
 
-pub async fn update_user<T: ArticleService, U: UserService>(
-    State(state): State<AppState<T, U>>,
+pub async fn update_user<A: ArticleService, U: UserService>(
+    State(state): State<AppState<A, U>>,
     Path(user_name): Path<String>,
     Json(payload): Json<UpdateUserRequest>,
 ) -> Result<Json<UserResponse>, StatusCode> {
@@ -145,8 +145,8 @@ pub async fn update_user<T: ArticleService, U: UserService>(
     Ok(Json(user_response))
 }
 
-pub async fn delete_user<T: ArticleService, U: UserService>(
-    State(state): State<AppState<T, U>>,
+pub async fn delete_user<A: ArticleService, U: UserService>(
+    State(state): State<AppState<A, U>>,
     Path(user_name): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     match state.user_service.delete_user(&user_name).await {

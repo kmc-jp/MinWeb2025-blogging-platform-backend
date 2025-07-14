@@ -7,18 +7,18 @@ use crate::domain::{
 };
 
 #[derive(Clone)]
-pub struct UserUsecase<T: UserRepository + Clone> {
-    repository: T,
+pub struct UserUsecase<U: UserRepository + Clone> {
+    repository: U,
 }
 
-impl<T: UserRepository + Clone> UserUsecase<T> {
-    pub fn new(repository: T) -> Self {
+impl<U: UserRepository + Clone> UserUsecase<U> {
+    pub fn new(repository: U) -> Self {
         UserUsecase { repository }
     }
 }
 
 #[async_trait]
-impl<T: UserRepository + Clone + Send + Sync> UserService for UserUsecase<T> {
+impl<U: UserRepository + Clone + Send + Sync> UserService for UserUsecase<U> {
     async fn get_users(
         &self,
         skip: usize,
