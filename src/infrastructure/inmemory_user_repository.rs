@@ -87,6 +87,6 @@ fn validate_user_name(users: &HashMap<ObjectId, User>, name: String) -> Result<U
     if users.values().any(|user| user.name.inner() == name) {
         Err(Error::custom("User name already exists"))
     } else {
-        Ok(UserName::new(name.to_string()))
+        Ok(UserName::new(name))
     }
 }
