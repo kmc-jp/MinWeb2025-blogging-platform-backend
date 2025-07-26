@@ -9,9 +9,6 @@ pub struct UserName {
 }
 
 impl UserName {
-    pub fn to_string(&self) -> String {
-        self.inner.clone()
-    }
     pub fn inner(&self) -> &str {
         &self.inner
     }
