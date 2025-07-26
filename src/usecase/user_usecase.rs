@@ -63,7 +63,7 @@ impl<U: UserRepository + Clone + Send + Sync> UserService for UserUsecase<U> {
                 intro,
                 email,
                 show_email,
-                password.and_then(|pw| Some(Sha256::digest(pw.as_bytes()).to_vec())),
+                password.map(|pw| Sha256::digest(pw.as_bytes()).to_vec()),
             )
             .await
     }

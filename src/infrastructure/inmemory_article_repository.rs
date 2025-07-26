@@ -56,8 +56,8 @@ impl ArticleRepository for InMemoryArticleRepository {
         let articles = self.articles.read().unwrap();
         let filtered_articles: Vec<Article> = articles.values()
             .filter(|article| {
-                query.title.as_ref().map_or(true, |title| article.title.contains(title)) &&
-                query.author.as_ref().map_or(true, |author| article.author.to_string() == *author)
+                query.title.as_ref().is_none_or(|title| article.title.contains(title)) &&
+                query.author.as_ref().is_none_or(|author| article.author.to_string() == *author)
             })
             .sorted_by_key(|article| article.created_at)
             .skip(skip)

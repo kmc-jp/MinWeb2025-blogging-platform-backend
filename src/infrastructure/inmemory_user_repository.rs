@@ -13,7 +13,7 @@ pub struct InMemoryUserRepository {
 impl UserRepository for InMemoryUserRepository {
     async fn get_users(&self, skip: usize, limit: usize) -> Result<Vec<User>, UserServiceError> {
         let users = self.users.read().unwrap();
-        Ok(users.values().cloned().skip(skip).take(limit).collect())
+        Ok(users.values().skip(skip).take(limit).cloned().collect())
     }
     async fn get_user_by_id(&self, id: ObjectId) -> Result<User, UserServiceError> {
         let users = self.users.read().unwrap();
