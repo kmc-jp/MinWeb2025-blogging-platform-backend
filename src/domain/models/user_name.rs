@@ -9,7 +9,7 @@ pub struct UserName {
 }
 
 impl UserName {
-    pub fn inner(&self) -> &str {
+    pub fn as_str(&self) -> &str {
         &self.inner
     }
     /// UserNameを新しく作成する

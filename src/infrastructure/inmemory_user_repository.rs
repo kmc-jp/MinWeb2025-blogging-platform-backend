@@ -21,7 +21,7 @@ impl UserRepository for InMemoryUserRepository {
     }
     async fn get_user_by_name(&self, name: &str) -> Result<User, UserServiceError> {
         let users = self.users.read().unwrap();
-        users.values().find(|user| user.name.inner() == name).cloned().ok_or_else(|| UserServiceError::UserNotFound)
+        users.values().find(|user| user.name.as_str() == name).cloned().ok_or_else(|| UserServiceError::UserNotFound)
     }
     async fn add_user(&self, name: String, display_name: String, intro: String, email: String, show_email: bool, pw_hash: Vec<u8>) -> Result<User, UserServiceError> {
         let mut users = self.users.write().unwrap();
@@ -82,7 +82,7 @@ impl UserRepository for InMemoryUserRepository {
 
 fn validate_user_name(users: &HashMap<ObjectId, User>, name: String) -> Result<UserName, UserServiceError> {
     //ユーザー名が重複していた場合はエラー
-    if users.values().any(|user| user.name.inner() == name) {
+    if users.values().any(|user| user.name.as_str() == name) {
         Err(UserServiceError::UserAlreadyExists)
     } else {
         Ok(UserName::new(name))
