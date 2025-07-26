@@ -61,7 +61,7 @@ impl ArticleRepository for InMemoryArticleRepository {
         let filtered_articles: Vec<Article> = articles.values()
             .filter(|article| {
                 query.title.as_ref().is_none_or(|title| article.title.contains(title)) &&
-                query.author.as_ref().is_none_or(|author| article.author.to_string() == *author)
+                query.author.as_ref().is_none_or(|author| article.author.inner() == author)
             })
             .k_smallest_by_key(skip + limit, |article| article.created_at)
             .skip(skip)
