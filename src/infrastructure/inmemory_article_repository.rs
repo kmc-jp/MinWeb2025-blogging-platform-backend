@@ -18,9 +18,13 @@ pub struct InMemoryArticleRepository {
 impl ArticleRepository for InMemoryArticleRepository {
     async fn get_articles(&self, skip: usize, limit: usize) -> Result<Vec<Article>, ArticleServiceError> {
         let articles = self.articles.read().unwrap();
-        let mut articles_vec: Vec<Article> = articles.values().cloned().collect();
-        articles_vec.sort_by_key(|article| article.created_at);
-        Ok(articles_vec.into_iter().skip(skip).take(limit).collect())
+        let articles =
+            articles.values()
+            .k_smallest_by_key(skip + limit, |article| article.created_at)
+            .skip(skip)
+            .cloned()
+            .collect();
+        Ok(articles)
     }
     async fn get_article_by_id(&self, id: ObjectId) -> Result<Article, ArticleServiceError> {
         let articles = self.articles.read().unwrap();
@@ -59,9 +63,8 @@ impl ArticleRepository for InMemoryArticleRepository {
                 query.title.as_ref().is_none_or(|title| article.title.contains(title)) &&
                 query.author.as_ref().is_none_or(|author| article.author.to_string() == *author)
             })
-            .sorted_by_key(|article| article.created_at)
+            .k_smallest_by_key(skip + limit, |article| article.created_at)
             .skip(skip)
-            .take(limit)
             .cloned()
             .collect();
         Ok(filtered_articles)
