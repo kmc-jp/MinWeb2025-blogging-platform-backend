@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use super::{article::Article, user_name::UserName, article_query::ArticleQuery};
+use super::{article::Article, article_query::ArticleQuery, user_name::UserName};
 use mongodb::bson::oid::ObjectId;
 
 #[async_trait]
@@ -10,10 +10,7 @@ pub trait ArticleService {
         skip: usize,
         limit: usize,
     ) -> Result<Vec<Article>, ArticleServiceError>;
-    async fn get_article_by_id(
-        &self,
-        id: ObjectId,
-    ) -> Result<Article, ArticleServiceError>;
+    async fn get_article_by_id(&self, id: ObjectId) -> Result<Article, ArticleServiceError>;
     async fn create_article(
         &self,
         title: String,

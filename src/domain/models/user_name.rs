@@ -5,7 +5,7 @@ use std::fmt;
 /// ユーザー名は一意であり、文字列として表現されます
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
 pub struct UserName {
-    inner: String
+    inner: String,
 }
 
 impl UserName {
@@ -20,7 +20,7 @@ impl UserName {
     }
 }
 
-impl fmt::Display for UserName{
+impl fmt::Display for UserName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.inner)
     }

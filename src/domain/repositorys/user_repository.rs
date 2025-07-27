@@ -1,6 +1,6 @@
+use crate::domain::models::{user::User, user_name::UserName, user_service::UserServiceError};
 use async_trait::async_trait;
 use bson::oid::ObjectId;
-use crate::domain::models::{user::User, user_name::UserName, user_service::UserServiceError};
 
 /// Userのデータベースを管理する操作を抽象化したトレイト
 #[async_trait]
@@ -33,7 +33,15 @@ pub trait UserRepository {
     /// このメソッドは、ユーザー名の重複チェックを行う必要があります。
     /// # Errors
     /// ユーザーが既に存在する場合や、データベースへのアクセスに失敗した場合は`Err`を返す
-    async fn add_user(&self, name: String, display_name: String, intro: String, email: String, show_email: bool, pw_hash: Vec<u8>) -> Result<User, UserServiceError>;
+    async fn add_user(
+        &self,
+        name: String,
+        display_name: String,
+        intro: String,
+        email: String,
+        show_email: bool,
+        pw_hash: Vec<u8>,
+    ) -> Result<User, UserServiceError>;
 
     /// ユーザー情報を部分的に更新する
     /// `name`: 更新するユーザー名, `display_name`: 新しい表示名, `intro`: 新しい自己紹介, `email`: 新しいメールアドレス, `show_email`: メールアドレスを公開するかどうか, `password`: 新しいパスワード
@@ -41,7 +49,16 @@ pub trait UserRepository {
     /// `display_name`, `intro`, `email`, `show_email`, `password`のいずれかがNoneの場合は、そのフィールドは更新しません。
     /// # Errors
     /// ユーザーが存在しない場合や、データベースへのアクセスに失敗した場合は`Err`を返す
-    async fn update_user(&self, id: ObjectId, name: Option<String>, display_name: Option<String>, intro: Option<String>, email: Option<String>, show_email: Option<bool>, pw_hash: Option<Vec<u8>>) -> Result<User, UserServiceError>;
+    async fn update_user(
+        &self,
+        id: ObjectId,
+        name: Option<String>,
+        display_name: Option<String>,
+        intro: Option<String>,
+        email: Option<String>,
+        show_email: Option<bool>,
+        pw_hash: Option<Vec<u8>>,
+    ) -> Result<User, UserServiceError>;
 
     /// ユーザーを削除する
     /// `id`: ユーザーのObjectId

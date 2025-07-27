@@ -1,6 +1,6 @@
 use bson::oid::ObjectId;
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 use crate::domain::models::user_name::UserName;
 #[derive(Serialize, Deserialize, Debug, Clone)]

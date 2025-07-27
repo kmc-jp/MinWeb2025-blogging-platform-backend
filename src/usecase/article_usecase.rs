@@ -1,8 +1,14 @@
 use async_trait::async_trait;
 use mongodb::bson::oid::ObjectId;
 
-use crate::domain::{models::{article::Article, article_service::ArticleService, user_name::UserName, article_service::ArticleServiceError}, repositorys::article_repository::ArticleRepository};
 use crate::domain::models::article_query::ArticleQuery;
+use crate::domain::{
+    models::{
+        article::Article, article_service::ArticleService, article_service::ArticleServiceError,
+        user_name::UserName,
+    },
+    repositorys::article_repository::ArticleRepository,
+};
 
 #[derive(Clone)]
 pub struct ArticleUsecase<A: ArticleRepository + Clone> {
@@ -25,10 +31,7 @@ impl<A: ArticleRepository + Clone + Send + Sync> ArticleService for ArticleUseca
         self.repository.get_articles(skip, limit).await
     }
 
-    async fn get_article_by_id(
-        &self,
-        id: ObjectId,
-    ) -> Result<Article, ArticleServiceError> {
+    async fn get_article_by_id(&self, id: ObjectId) -> Result<Article, ArticleServiceError> {
         self.repository.get_article_by_id(id).await
     }
 

@@ -15,7 +15,7 @@ pub struct User {
     pub email: String,
     pub show_email: bool,
     pub pw_hash: Vec<u8>, // ハッシュ化されたパスワード
-    pub created_at: DateTime<Utc>
+    pub created_at: DateTime<Utc>,
 }
 
 impl AuthUser for User {

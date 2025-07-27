@@ -5,4 +5,3 @@ pub fn default_skip() -> usize {
 pub fn default_limit() -> usize {
     100
 }
-
