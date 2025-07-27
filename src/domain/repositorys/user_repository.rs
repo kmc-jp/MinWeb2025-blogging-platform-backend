@@ -1,6 +1,9 @@
-use crate::domain::models::{user::User, user_name::UserName, user_service::UserServiceError};
+use crate::domain::models::{
+    user::{User, UserId},
+    user_name::UserName,
+    user_service::UserServiceError,
+};
 use async_trait::async_trait;
-use bson::oid::ObjectId;
 
 /// Userのデータベースを管理する操作を抽象化したトレイト
 #[async_trait]
@@ -17,7 +20,7 @@ pub trait UserRepository {
     /// ユーザーが存在する場合は`Ok(Some(User))`を返す
     /// # Errors
     /// データベースへのアクセスに失敗した場合は`Err`を返す
-    async fn get_user_by_id(&self, id: ObjectId) -> Result<User, UserServiceError>;
+    async fn get_user_by_id(&self, id: UserId) -> Result<User, UserServiceError>;
 
     /// ユーザー名を元にユーザー情報を取得する
     /// `user_name`: ユーザー名
@@ -51,7 +54,7 @@ pub trait UserRepository {
     /// ユーザーが存在しない場合や、データベースへのアクセスに失敗した場合は`Err`を返す
     async fn update_user(
         &self,
-        id: ObjectId,
+        id: UserId,
         name: Option<String>,
         display_name: Option<String>,
         intro: Option<String>,
@@ -65,7 +68,7 @@ pub trait UserRepository {
     /// 更新が成功した場合は`Ok(())`
     /// # Errors
     /// ユーザーが存在しない場合や、データベースへのアクセスに失敗した場合は`Err`を返す
-    async fn delete_user(&self, id: ObjectId) -> Result<(), UserServiceError>;
+    async fn delete_user(&self, id: UserId) -> Result<(), UserServiceError>;
 
     /// ユーザー名が存在するかどうかをチェックし、存在しなかったときに`name`の型を`UserName`に変換して返す
     /// `name`: UserNameに変換するユーザー名

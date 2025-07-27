@@ -1,18 +1,21 @@
 use async_trait::async_trait;
-use bson::oid::ObjectId;
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
 };
 
 use crate::domain::{
-    models::{user::User, user_name::UserName, user_service::UserServiceError},
+    models::{
+        user::{User, UserId},
+        user_name::UserName,
+        user_service::UserServiceError,
+    },
     repositorys::user_repository::UserRepository,
 };
 
 #[derive(Debug, Clone, Default)]
 pub struct InMemoryUserRepository {
-    users: Arc<RwLock<HashMap<ObjectId, User>>>,
+    users: Arc<RwLock<HashMap<UserId, User>>>,
 }
 
 #[async_trait]
@@ -21,7 +24,7 @@ impl UserRepository for InMemoryUserRepository {
         let users = self.users.read().unwrap();
         Ok(users.values().skip(skip).take(limit).cloned().collect())
     }
-    async fn get_user_by_id(&self, id: ObjectId) -> Result<User, UserServiceError> {
+    async fn get_user_by_id(&self, id: UserId) -> Result<User, UserServiceError> {
         let users = self.users.read().unwrap();
         users
             .get(&id)
@@ -47,7 +50,7 @@ impl UserRepository for InMemoryUserRepository {
     ) -> Result<User, UserServiceError> {
         let mut users = self.users.write().unwrap();
         let user_name = validate_user_name(&users, name)?;
-        let id = ObjectId::new();
+        let id = UserId::new();
         let user = User {
             id,
             name: user_name,
@@ -63,7 +66,7 @@ impl UserRepository for InMemoryUserRepository {
     }
     async fn update_user(
         &self,
-        id: ObjectId,
+        id: UserId,
         name: Option<String>,
         display_name: Option<String>,
         intro: Option<String>,
@@ -100,7 +103,7 @@ impl UserRepository for InMemoryUserRepository {
         }
         Ok(user.clone())
     }
-    async fn delete_user(&self, id: ObjectId) -> Result<(), UserServiceError> {
+    async fn delete_user(&self, id: UserId) -> Result<(), UserServiceError> {
         let mut users = self.users.write().unwrap();
         if users.remove(&id).is_some() {
             Ok(())
@@ -115,7 +118,7 @@ impl UserRepository for InMemoryUserRepository {
 }
 
 fn validate_user_name(
-    users: &HashMap<ObjectId, User>,
+    users: &HashMap<UserId, User>,
     name: String,
 ) -> Result<UserName, UserServiceError> {
     //ユーザー名が重複していた場合はエラー

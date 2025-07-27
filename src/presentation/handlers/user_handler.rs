@@ -1,6 +1,7 @@
 use crate::{
     domain::models::{
         article_service::ArticleService,
+        user::UserId,
         user_service::{UserService, UserServiceError},
     },
     presentation::handlers::create_handler::AppState,
@@ -10,7 +11,6 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
 };
-use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
 use super::util::{default_limit, default_skip};
@@ -36,7 +36,7 @@ pub struct UpdateUserRequest {
 
 #[derive(Serialize)]
 pub struct UserResponse {
-    pub id: ObjectId,
+    pub id: UserId,
     pub name: String,
     pub display_name: String,
     pub intro: String,
