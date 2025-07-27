@@ -4,11 +4,11 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
-use bson::oid::ObjectId;
 use serde::Deserialize;
 
 use crate::{
     domain::models::{
+        article::ArticleId,
         article_query::ArticleQuery,
         article_service::{ArticleService, ArticleServiceError},
         user_service::{UserService, UserServiceError},
@@ -76,7 +76,7 @@ pub async fn get_article_by_id<A: ArticleService, U: UserService>(
     State(state): State<AppState<A, U>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let Ok(oid) = ObjectId::parse_str(&id) else {
+    let Ok(oid) = ArticleId::parse_str(&id) else {
         return (StatusCode::BAD_REQUEST, "Invalid ID format").into_response();
     };
 
@@ -100,7 +100,7 @@ pub async fn update_article<A: ArticleService, U: UserService>(
     Path(id): Path<String>,
     Json(payload): Json<UpdateArticlePayload>,
 ) -> impl IntoResponse {
-    let Ok(oid) = ObjectId::parse_str(&id) else {
+    let Ok(oid) = ArticleId::parse_str(&id) else {
         return (StatusCode::BAD_REQUEST, "Invalid ID format").into_response();
     };
 
@@ -121,7 +121,7 @@ pub async fn delete_article<A: ArticleService, U: UserService>(
     State(state): State<AppState<A, U>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let Ok(oid) = ObjectId::parse_str(&id) else {
+    let Ok(oid) = ArticleId::parse_str(&id) else {
         return (StatusCode::BAD_REQUEST, "Invalid ID format").into_response();
     };
 

@@ -4,13 +4,14 @@ use std::{
 };
 
 use async_trait::async_trait;
-use bson::oid::ObjectId;
 use chrono::Utc;
 use itertools::Itertools;
 
 use crate::domain::{
     models::{
-        article::Article, article_query::ArticleQuery, article_service::ArticleServiceError,
+        article::{Article, ArticleId},
+        article_query::ArticleQuery,
+        article_service::ArticleServiceError,
         user_name::UserName,
     },
     repositorys::article_repository::ArticleRepository,
@@ -18,7 +19,7 @@ use crate::domain::{
 
 #[derive(Clone, Default, Debug)]
 pub struct InMemoryArticleRepository {
-    articles: Arc<RwLock<HashMap<ObjectId, Article>>>,
+    articles: Arc<RwLock<HashMap<ArticleId, Article>>>,
 }
 
 #[async_trait]
@@ -37,7 +38,7 @@ impl ArticleRepository for InMemoryArticleRepository {
             .collect();
         Ok(articles)
     }
-    async fn get_article_by_id(&self, id: ObjectId) -> Result<Article, ArticleServiceError> {
+    async fn get_article_by_id(&self, id: ArticleId) -> Result<Article, ArticleServiceError> {
         let articles = self.articles.read().unwrap();
         articles
             .get(&id)
@@ -57,7 +58,7 @@ impl ArticleRepository for InMemoryArticleRepository {
     }
     async fn update_article(
         &self,
-        id: ObjectId,
+        id: ArticleId,
         title: Option<String>,
         content: Option<String>,
     ) -> Result<Article, ArticleServiceError> {
@@ -74,7 +75,7 @@ impl ArticleRepository for InMemoryArticleRepository {
         article.updated_at = Utc::now();
         Ok(article.clone())
     }
-    async fn delete_article(&self, id: ObjectId) -> Result<(), ArticleServiceError> {
+    async fn delete_article(&self, id: ArticleId) -> Result<(), ArticleServiceError> {
         let mut articles = self.articles.write().unwrap();
         if articles.remove(&id).is_some() {
             Ok(())

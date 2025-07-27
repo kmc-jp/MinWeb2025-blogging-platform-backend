@@ -1,6 +1,6 @@
 use async_trait::async_trait;
-use mongodb::bson::oid::ObjectId;
 
+use crate::domain::models::article::ArticleId;
 use crate::domain::models::article_query::ArticleQuery;
 use crate::domain::{
     models::{
@@ -31,7 +31,7 @@ impl<A: ArticleRepository + Clone + Send + Sync> ArticleService for ArticleUseca
         self.repository.get_articles(skip, limit).await
     }
 
-    async fn get_article_by_id(&self, id: ObjectId) -> Result<Article, ArticleServiceError> {
+    async fn get_article_by_id(&self, id: ArticleId) -> Result<Article, ArticleServiceError> {
         self.repository.get_article_by_id(id).await
     }
 
@@ -46,14 +46,14 @@ impl<A: ArticleRepository + Clone + Send + Sync> ArticleService for ArticleUseca
 
     async fn update_article(
         &self,
-        id: ObjectId,
+        id: ArticleId,
         title: Option<String>,
         content: Option<String>,
     ) -> Result<Article, ArticleServiceError> {
         self.repository.update_article(id, title, content).await
     }
 
-    async fn delete_article(&self, id: ObjectId) -> Result<(), ArticleServiceError> {
+    async fn delete_article(&self, id: ArticleId) -> Result<(), ArticleServiceError> {
         self.repository.delete_article(id).await
     }
 

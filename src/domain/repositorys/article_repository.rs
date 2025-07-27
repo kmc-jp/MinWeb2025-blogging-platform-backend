@@ -1,9 +1,10 @@
 use crate::domain::models::{
-    article::Article, article_query::ArticleQuery, article_service::ArticleServiceError,
+    article::{Article, ArticleId},
+    article_query::ArticleQuery,
+    article_service::ArticleServiceError,
     user_name::UserName,
 };
 use async_trait::async_trait;
-use bson::oid::ObjectId;
 
 /// Articleのデータベースを管理する操作を抽象化したトレイト
 #[async_trait]
@@ -25,7 +26,7 @@ pub trait ArticleRepository {
     ///
     /// # Errors
     /// 記事が存在しない場合や、データベースへのアクセスに失敗した場合は`Err`を返す
-    async fn get_article_by_id(&self, id: ObjectId) -> Result<Article, ArticleServiceError>;
+    async fn get_article_by_id(&self, id: ArticleId) -> Result<Article, ArticleServiceError>;
 
     /// 新しい記事を追加する
     /// `title`: 記事のタイトル, `author`: 記事の著者, `content`: 記事の内容
@@ -49,7 +50,7 @@ pub trait ArticleRepository {
     /// 記事が存在しない場合や、データベースへのアクセスに失敗した場合は`Err`を返す
     async fn update_article(
         &self,
-        id: ObjectId,
+        id: ArticleId,
         title: Option<String>,
         content: Option<String>,
     ) -> Result<Article, ArticleServiceError>;
@@ -60,7 +61,7 @@ pub trait ArticleRepository {
     ///
     /// # Errors
     /// 記事が存在しない場合や、データベースへのアクセスに失敗した場合は`Err`を返す
-    async fn delete_article(&self, id: ObjectId) -> Result<(), ArticleServiceError>;
+    async fn delete_article(&self, id: ArticleId) -> Result<(), ArticleServiceError>;
 
     /// クエリを元に記事を取得する
     /// `skip`: 取得開始位置, `limit`: 最大取得数, `query`: 記事のクエリ
