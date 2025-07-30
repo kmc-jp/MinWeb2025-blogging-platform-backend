@@ -34,12 +34,23 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    let app = create_app().await;
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    tracing::debug!("listening on http://{}", listener.local_addr().unwrap());
+    axum::serve(listener, app)
+        .with_graceful_shutdown(async { signal::ctrl_c().await.unwrap() })
+        .await
+        .unwrap();
+}
+
+async fn create_app() -> Router {
     let article_service = ArticleUsecase::new(InMemoryArticleRepository::default());
     let user_service = UserUsecase::new(InMemoryUserRepository::default());
 
     create_test_data(&article_service, &user_service).await;
 
-    let app = Router::new()
+    Router::new()
         .route("/", get(root_handler))
         .layer(
             ServiceBuilder::new()
@@ -57,14 +68,7 @@ async fn main() {
                 .layer(TraceLayer::new_for_http())
                 .into_inner(),
         )
-        .nest("/api", create_handler(article_service, user_service));
-
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    tracing::debug!("listening on http://{}", listener.local_addr().unwrap());
-    axum::serve(listener, app)
-        .with_graceful_shutdown(async { signal::ctrl_c().await.unwrap() })
-        .await
-        .unwrap();
+        .nest("/api", create_handler(article_service, user_service))
 }
 
 async fn root_handler() -> String {
