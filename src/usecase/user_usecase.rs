@@ -2,7 +2,11 @@ use async_trait::async_trait;
 use sha2::{Digest, Sha256};
 
 use crate::domain::{
-    models::{user::User, user_name::UserName, user_service::{UserService, UserServiceError}},
+    models::{
+        user::User,
+        user_name::UserName,
+        user_service::{UserService, UserServiceError},
+    },
     repositorys::user_repository::UserRepository,
 };
 
@@ -19,11 +23,7 @@ impl<U: UserRepository + Clone> UserUsecase<U> {
 
 #[async_trait]
 impl<U: UserRepository + Clone + Send + Sync> UserService for UserUsecase<U> {
-    async fn get_users(
-        &self,
-        skip: usize,
-        limit: usize,
-    ) -> Result<Vec<User>, UserServiceError> {
+    async fn get_users(&self, skip: usize, limit: usize) -> Result<Vec<User>, UserServiceError> {
         self.repository.get_users(skip, limit).await
     }
 
@@ -41,7 +41,14 @@ impl<U: UserRepository + Clone + Send + Sync> UserService for UserUsecase<U> {
         password: String,
     ) -> Result<User, UserServiceError> {
         self.repository
-            .add_user(name, display_name, intro, email, show_email, Sha256::digest(password.as_bytes()).to_vec())
+            .add_user(
+                name,
+                display_name,
+                intro,
+                email,
+                show_email,
+                Sha256::digest(password.as_bytes()).to_vec(),
+            )
             .await
     }
 
@@ -63,7 +70,7 @@ impl<U: UserRepository + Clone + Send + Sync> UserService for UserUsecase<U> {
                 intro,
                 email,
                 show_email,
-                password.and_then(|pw| Some(Sha256::digest(pw.as_bytes()).to_vec())),
+                password.map(|pw| Sha256::digest(pw.as_bytes()).to_vec()),
             )
             .await
     }
@@ -73,10 +80,7 @@ impl<U: UserRepository + Clone + Send + Sync> UserService for UserUsecase<U> {
         self.repository.delete_user(user.id).await
     }
 
-    async fn validate_user_name(
-        &self,
-        name: &str,
-    ) -> Result<UserName, UserServiceError> {
+    async fn validate_user_name(&self, name: &str) -> Result<UserName, UserServiceError> {
         self.repository.validate_user_name(name).await
     }
 }

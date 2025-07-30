@@ -1,7 +1,4 @@
-use axum::{
-    routing::{get},
-    Router,
-};
+use axum::{Router, routing::get};
 
 use crate::{
     domain::models::{article_service::ArticleService, user_service::UserService},

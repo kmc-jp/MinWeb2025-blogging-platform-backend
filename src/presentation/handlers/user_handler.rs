@@ -1,13 +1,16 @@
 use crate::{
+    domain::models::{
+        article_service::ArticleService,
+        user::UserId,
+        user_service::{UserService, UserServiceError},
+    },
     presentation::handlers::create_handler::AppState,
-    domain::models::{article_service::ArticleService, user_service::{UserService, UserServiceError}},
 };
 use axum::{
+    Json,
     extract::{Path, Query, State},
     http::StatusCode,
-    Json,
 };
-use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
 use super::util::{default_limit, default_skip};
@@ -33,7 +36,7 @@ pub struct UpdateUserRequest {
 
 #[derive(Serialize)]
 pub struct UserResponse {
-    pub id: ObjectId,
+    pub id: UserId,
     pub name: String,
     pub display_name: String,
     pub intro: String,
@@ -53,7 +56,7 @@ pub async fn create_user<A: ArticleService, U: UserService>(
     State(state): State<AppState<A, U>>,
     Json(payload): Json<CreateUserRequest>,
 ) -> Result<(StatusCode, Json<UserResponse>), StatusCode> {
-    let user =  state
+    let user = state
         .user_service
         .create_user(
             payload.name,
@@ -70,7 +73,11 @@ pub async fn create_user<A: ArticleService, U: UserService>(
         name: user.name.to_string(),
         display_name: user.display_name,
         intro: user.intro,
-        email: if user.show_email { Some(user.email) } else { None },
+        email: if user.show_email {
+            Some(user.email)
+        } else {
+            None
+        },
     };
     Ok((StatusCode::CREATED, Json(user_response)))
 }
@@ -79,18 +86,27 @@ pub async fn get_user<A: ArticleService, U: UserService>(
     State(state): State<AppState<A, U>>,
     Path(user_name): Path<String>,
 ) -> Result<Json<UserResponse>, StatusCode> {
-    let user =
-        state
+    let user = state
         .user_service
         .get_user_by_name(&user_name)
         .await
-        .map_err(|e| if matches!(e, UserServiceError::UserNotFound) { StatusCode::NOT_FOUND } else { StatusCode::INTERNAL_SERVER_ERROR })?;
+        .map_err(|e| {
+            if matches!(e, UserServiceError::UserNotFound) {
+                StatusCode::NOT_FOUND
+            } else {
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
+        })?;
     let user_response = UserResponse {
         id: user.id,
         name: user.name.to_string(),
         display_name: user.display_name,
         intro: user.intro,
-        email: if user.show_email { Some(user.email) } else { None },
+        email: if user.show_email {
+            Some(user.email)
+        } else {
+            None
+        },
     };
     Ok(Json(user_response))
 }
@@ -111,7 +127,11 @@ pub async fn list_users<A: ArticleService, U: UserService>(
             name: user.name.to_string(),
             display_name: user.display_name,
             intro: user.intro,
-            email: if user.show_email { Some(user.email) } else { None },
+            email: if user.show_email {
+                Some(user.email)
+            } else {
+                None
+            },
         })
         .collect();
     Ok(Json(user_responses))
@@ -139,7 +159,11 @@ pub async fn update_user<A: ArticleService, U: UserService>(
         name: user.name.to_string(),
         display_name: user.display_name,
         intro: user.intro,
-        email: if user.show_email { Some(user.email) } else { None },
+        email: if user.show_email {
+            Some(user.email)
+        } else {
+            None
+        },
     };
     Ok(Json(user_response))
 }
@@ -153,4 +177,3 @@ pub async fn delete_user<A: ArticleService, U: UserService>(
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
-

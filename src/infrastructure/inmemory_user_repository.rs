@@ -1,32 +1,56 @@
-use std::{collections::HashMap, sync::{Arc, RwLock}};
-use bson::oid::ObjectId;
 use async_trait::async_trait;
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 
-use crate::domain::{models::{user::User, user_name::UserName, user_service::UserServiceError}, repositorys::user_repository::UserRepository};
+use crate::domain::{
+    models::{
+        user::{User, UserId},
+        user_name::UserName,
+        user_service::UserServiceError,
+    },
+    repositorys::user_repository::UserRepository,
+};
 
 #[derive(Debug, Clone, Default)]
 pub struct InMemoryUserRepository {
-    users: Arc<RwLock<HashMap<ObjectId, User>>>,
+    users: Arc<RwLock<HashMap<UserId, User>>>,
 }
 
 #[async_trait]
 impl UserRepository for InMemoryUserRepository {
     async fn get_users(&self, skip: usize, limit: usize) -> Result<Vec<User>, UserServiceError> {
         let users = self.users.read().unwrap();
-        Ok(users.values().cloned().skip(skip).take(limit).collect())
+        Ok(users.values().skip(skip).take(limit).cloned().collect())
     }
-    async fn get_user_by_id(&self, id: ObjectId) -> Result<User, UserServiceError> {
+    async fn get_user_by_id(&self, id: UserId) -> Result<User, UserServiceError> {
         let users = self.users.read().unwrap();
-        users.get(&id).cloned().ok_or_else(|| UserServiceError::UserNotFound)
+        users
+            .get(&id)
+            .cloned()
+            .ok_or_else(|| UserServiceError::UserNotFound)
     }
     async fn get_user_by_name(&self, name: &str) -> Result<User, UserServiceError> {
         let users = self.users.read().unwrap();
-        users.values().find(|user| user.name.inner() == name).cloned().ok_or_else(|| UserServiceError::UserNotFound)
+        users
+            .values()
+            .find(|user| user.name.as_str() == name)
+            .cloned()
+            .ok_or_else(|| UserServiceError::UserNotFound)
     }
-    async fn add_user(&self, name: String, display_name: String, intro: String, email: String, show_email: bool, pw_hash: Vec<u8>) -> Result<User, UserServiceError> {
+    async fn add_user(
+        &self,
+        name: String,
+        display_name: String,
+        intro: String,
+        email: String,
+        show_email: bool,
+        pw_hash: Vec<u8>,
+    ) -> Result<User, UserServiceError> {
         let mut users = self.users.write().unwrap();
         let user_name = validate_user_name(&users, name)?;
-        let id = ObjectId::new();
+        let id = UserId::new();
         let user = User {
             id,
             name: user_name,
@@ -40,11 +64,24 @@ impl UserRepository for InMemoryUserRepository {
         users.insert(id, user.clone());
         Ok(user)
     }
-    async fn update_user(&self, id: ObjectId, name: Option<String>, display_name: Option<String>, intro: Option<String>, email: Option<String>, show_email: Option<bool>, pw_hash: Option<Vec<u8>>) -> Result<User, UserServiceError> {
+    async fn update_user(
+        &self,
+        id: UserId,
+        name: Option<String>,
+        display_name: Option<String>,
+        intro: Option<String>,
+        email: Option<String>,
+        show_email: Option<bool>,
+        pw_hash: Option<Vec<u8>>,
+    ) -> Result<User, UserServiceError> {
         let mut users = self.users.write().unwrap();
-        let validated_name = name.map(|name| validate_user_name(&users, name)).transpose()?;
+        let validated_name = name
+            .map(|name| validate_user_name(&users, name))
+            .transpose()?;
         // ユーザーの更新
-        let user = users.get_mut(&id).ok_or_else(|| UserServiceError::UserNotFound)?;
+        let user = users
+            .get_mut(&id)
+            .ok_or_else(|| UserServiceError::UserNotFound)?;
 
         if let Some(valid_name) = validated_name {
             user.name = valid_name;
@@ -66,7 +103,7 @@ impl UserRepository for InMemoryUserRepository {
         }
         Ok(user.clone())
     }
-    async fn delete_user(&self, id: ObjectId) -> Result<(), UserServiceError> {
+    async fn delete_user(&self, id: UserId) -> Result<(), UserServiceError> {
         let mut users = self.users.write().unwrap();
         if users.remove(&id).is_some() {
             Ok(())
@@ -80,9 +117,12 @@ impl UserRepository for InMemoryUserRepository {
     }
 }
 
-fn validate_user_name(users: &HashMap<ObjectId, User>, name: String) -> Result<UserName, UserServiceError> {
+fn validate_user_name(
+    users: &HashMap<UserId, User>,
+    name: String,
+) -> Result<UserName, UserServiceError> {
     //ユーザー名が重複していた場合はエラー
-    if users.values().any(|user| user.name.inner() == name) {
+    if users.values().any(|user| user.name.as_str() == name) {
         Err(UserServiceError::UserAlreadyExists)
     } else {
         Ok(UserName::new(name))

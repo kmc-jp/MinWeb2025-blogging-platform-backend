@@ -4,11 +4,7 @@ use super::{user::User, user_name::UserName};
 
 #[async_trait]
 pub trait UserService {
-    async fn get_users(
-        &self,
-        skip: usize,
-        limit: usize,
-    ) -> Result<Vec<User>, UserServiceError>;
+    async fn get_users(&self, skip: usize, limit: usize) -> Result<Vec<User>, UserServiceError>;
     async fn get_user_by_name(&self, name: &str) -> Result<User, UserServiceError>;
     async fn create_user(
         &self,

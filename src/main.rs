@@ -1,22 +1,25 @@
 pub mod db;
-pub mod infrastructure;
 pub mod domain;
-pub mod usecase;
+pub mod infrastructure;
 pub mod presentation;
+pub mod usecase;
 
-use std::time::Duration;
-use axum::{error_handling::HandleErrorLayer, http::StatusCode, routing::get, Router};
+use axum::{Router, error_handling::HandleErrorLayer, http::StatusCode, routing::get};
 use dotenvy::dotenv;
+use std::time::Duration;
 use tokio::signal;
 use tower::{BoxError, ServiceBuilder};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::{
-    infrastructure::{inmemory_article_repository::InMemoryArticleRepository, inmemory_user_repository::InMemoryUserRepository},
+    domain::models::{article_service::ArticleService, user_service::UserService},
+    infrastructure::{
+        inmemory_article_repository::InMemoryArticleRepository,
+        inmemory_user_repository::InMemoryUserRepository,
+    },
     presentation::handlers::create_handler::create_handler,
     usecase::{article_usecase::ArticleUsecase, user_usecase::UserUsecase},
-    domain::models::{article_service::ArticleService, user_service::UserService}
 };
 
 #[tokio::main]
@@ -33,9 +36,9 @@ async fn main() {
 
     let article_service = ArticleUsecase::new(InMemoryArticleRepository::default());
     let user_service = UserUsecase::new(InMemoryUserRepository::default());
-    
+
     create_test_data(&article_service, &user_service).await;
-        
+
     let app = Router::new()
         .route("/", get(root_handler))
         .layer(
@@ -54,14 +57,14 @@ async fn main() {
                 .layer(TraceLayer::new_for_http())
                 .into_inner(),
         )
-        .nest("/api", create_handler(
-            article_service,
-            user_service,
-        ));
+        .nest("/api", create_handler(article_service, user_service));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     tracing::debug!("listening on http://{}", listener.local_addr().unwrap());
-    axum::serve(listener, app).with_graceful_shutdown(async { signal::ctrl_c().await.unwrap() }).await.unwrap();
+    axum::serve(listener, app)
+        .with_graceful_shutdown(async { signal::ctrl_c().await.unwrap() })
+        .await
+        .unwrap();
 }
 
 async fn root_handler() -> String {
@@ -69,24 +72,33 @@ async fn root_handler() -> String {
     "Welcome to the Blogging Platform API!".to_string()
 }
 
-async fn create_test_data(article_service: &ArticleUsecase<InMemoryArticleRepository>, user_service: &UserUsecase<InMemoryUserRepository>) {
-    let furakuta = user_service.create_user(
-        "furakuta".to_string(),
-        "ふらくた".to_string(),
-        "Rustと機械学習を勉強中".to_string(),
-        "otera65537@gmail.com".to_string(),
-        true,
-        "password123".to_string()
-    ).await.expect("Failed to create user 'furakuta'");
+async fn create_test_data(
+    article_service: &ArticleUsecase<InMemoryArticleRepository>,
+    user_service: &UserUsecase<InMemoryUserRepository>,
+) {
+    let furakuta = user_service
+        .create_user(
+            "furakuta".to_string(),
+            "ふらくた".to_string(),
+            "Rustと機械学習を勉強中".to_string(),
+            "otera65537@gmail.com".to_string(),
+            true,
+            "password123".to_string(),
+        )
+        .await
+        .expect("Failed to create user 'furakuta'");
 
-    let hoge = user_service.create_user(
-        "hoge".to_string(),
-        "ほげ".to_string(),
-        "プログラミング初心者".to_string(),
-        "hogehogehoge@gmail.com".to_string(),
-        false,
-        "password456".to_string()
-    ).await.expect("Failed to create user 'hoge'");
+    let hoge = user_service
+        .create_user(
+            "hoge".to_string(),
+            "ほげ".to_string(),
+            "プログラミング初心者".to_string(),
+            "hogehogehoge@gmail.com".to_string(),
+            false,
+            "password456".to_string(),
+        )
+        .await
+        .expect("Failed to create user 'hoge'");
 
     article_service.create_article(
         "Pythonはくそ".to_string(),
