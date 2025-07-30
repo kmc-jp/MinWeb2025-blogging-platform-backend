@@ -145,7 +145,7 @@ mod api_test {
         domain::models::article::Article, presentation::handlers::user_handler::UserResponse,
     };
     #[tokio::test]
-    async fn test() {
+    async fn article_test() {
         dotenv().expect(".env file not found");
         let app = super::create_app().await;
         let server = TestServer::new(app).unwrap();
@@ -194,15 +194,6 @@ mod api_test {
             .json::<Article>();
         assert_eq!(modified_article.title, "Pythonは💩");
 
-        // ユーザー一覧取得テスト
-        let users = server
-            .get("http://localhost:3000/api/users?limit=5")
-            .await
-            .json::<Vec<UserResponse>>();
-        assert!(users.iter().any(|u| u.name == "furakuta"));
-        assert!(users.iter().any(|u| u.name == "hoge"));
-        assert!(!users.iter().any(|u| u.name == "fuga"));
-
         // 新規記事作成テスト
         let new_article = serde_json::json!({
             "author": "furakuta",
@@ -214,6 +205,20 @@ mod api_test {
             .json(&new_article)
             .await;
         assert_eq!(post_response.status_code(), 201);
+    }
+    #[tokio::test]
+    async fn user_test() {
+        dotenv().expect(".env file not found");
+        let app = super::create_app().await;
+        let server = TestServer::new(app).unwrap();
+        // ユーザー一覧取得テスト
+        let users = server
+            .get("http://localhost:3000/api/users?limit=5")
+            .await
+            .json::<Vec<UserResponse>>();
+        assert!(users.iter().any(|u| u.name == "furakuta"));
+        assert!(users.iter().any(|u| u.name == "hoge"));
+        assert!(!users.iter().any(|u| u.name == "fuga"));
 
         // 新規ユーザー作成テスト
         let new_user = serde_json::json!({
