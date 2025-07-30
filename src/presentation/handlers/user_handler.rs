@@ -34,7 +34,7 @@ pub struct UpdateUserRequest {
     pub password: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct UserResponse {
     pub id: UserId,
     pub name: String,
