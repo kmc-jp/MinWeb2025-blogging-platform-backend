@@ -1,22 +1,19 @@
-use axum::{
-    routing::{get},
-    Router,
-};
+use axum::{Router, routing::get};
 
 use crate::{
-    usecase::{article_usecase::ArticleService, user_usecase::UserService},
+    domain::models::{article_service::ArticleService, user_service::UserService},
     presentation::handlers::{article_handler::*, user_handler::*},
 };
 
 #[derive(Clone)]
-pub struct AppState<T: ArticleService, U: UserService> {
-    pub article_service: T,
+pub struct AppState<A: ArticleService, U: UserService> {
+    pub article_service: A,
     pub user_service: U,
 }
 
-pub fn create_handler<T, U>(article_service: T, user_service: U) -> Router
+pub fn create_handler<A, U>(article_service: A, user_service: U) -> Router
 where
-    T: ArticleService + Clone + Send + Sync + 'static,
+    A: ArticleService + Clone + Send + Sync + 'static,
     U: UserService + Clone + Send + Sync + 'static,
 {
     let app_state = AppState {
@@ -27,21 +24,21 @@ where
     Router::new()
         .route(
             "/articles",
-            get(get_articles::<T, U>).post(create_article::<T, U>),
+            get(get_articles::<A, U>).post(create_article::<A, U>),
         )
         .route(
             "/articles/{id}",
-            get(get_article_by_id::<T, U>)
-                .patch(update_article::<T, U>)
-                .delete(delete_article::<T, U>),
+            get(get_article_by_id::<A, U>)
+                .patch(update_article::<A, U>)
+                .delete(delete_article::<A, U>),
         )
-        .route("/articles/search", get(search_articles::<T, U>))
-        .route("/users", get(list_users::<T, U>).post(create_user::<T, U>))
+        .route("/articles/search", get(search_articles::<A, U>))
+        .route("/users", get(list_users::<A, U>).post(create_user::<A, U>))
         .route(
             "/users/{user_name}",
-            get(get_user::<T, U>)
-                .patch(update_user::<T, U>)
-                .delete(delete_user::<T, U>),
+            get(get_user::<A, U>)
+                .patch(update_user::<A, U>)
+                .delete(delete_user::<A, U>),
         )
         .with_state(app_state)
 }

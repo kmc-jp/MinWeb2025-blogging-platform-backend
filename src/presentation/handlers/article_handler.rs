@@ -1,16 +1,19 @@
 use axum::{
+    Json,
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
 };
-use bson::oid::ObjectId;
 use serde::Deserialize;
 
 use crate::{
-    domain::models::article_query::ArticleQuery,
+    domain::models::{
+        article::ArticleId,
+        article_query::ArticleQuery,
+        article_service::{ArticleService, ArticleServiceError},
+        user_service::{UserService, UserServiceError},
+    },
     presentation::handlers::{create_handler::AppState, util::*},
-    usecase::{article_usecase::ArticleService, user_usecase::UserService},
 };
 
 #[derive(Deserialize, Debug, Clone)]
@@ -43,19 +46,19 @@ pub struct CreateArticlePayload {
 }
 
 // この関数はUserAppStateに依存していることに注意してください
-pub async fn create_article<T: ArticleService, U: UserService>(
-    State(state): State<AppState<T, U>>,
+pub async fn create_article<A: ArticleService, U: UserService>(
+    State(state): State<AppState<A, U>>,
     Json(payload): Json<CreateArticlePayload>,
 ) -> impl IntoResponse {
     let author_name = match state.user_service.get_user_by_name(&payload.author).await {
-        Ok(Some(user)) => user.name,
-        Ok(None) => {
+        Ok(user) => user.name,
+        Err(UserServiceError::UserNotFound) => {
             return (
                 StatusCode::BAD_REQUEST,
                 format!("User '{}' not found", payload.author),
             )
-                .into_response()
-        },
+                .into_response();
+        }
         Err(e) => return (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
     };
 
@@ -69,18 +72,19 @@ pub async fn create_article<T: ArticleService, U: UserService>(
     }
 }
 
-pub async fn get_article_by_id<T: ArticleService, U: UserService>(
-    State(state): State<AppState<T, U>>,
+pub async fn get_article_by_id<A: ArticleService, U: UserService>(
+    State(state): State<AppState<A, U>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let oid = match ObjectId::parse_str(&id) {
-        Ok(oid) => oid,
-        Err(_) => return (StatusCode::BAD_REQUEST, "Invalid ID format").into_response(),
+    let Ok(oid) = ArticleId::parse_str(&id) else {
+        return (StatusCode::BAD_REQUEST, "Invalid ID format").into_response();
     };
 
     match state.article_service.get_article_by_id(oid).await {
-        Ok(Some(article)) => (StatusCode::OK, Json(article)).into_response(),
-        Ok(None) => (StatusCode::NOT_FOUND).into_response(),
+        Ok(article) => (StatusCode::OK, Json(article)).into_response(),
+        Err(ArticleServiceError::ArticleNotFound) => {
+            (StatusCode::NOT_FOUND, "Article not found").into_response()
+        }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
@@ -91,14 +95,13 @@ pub struct UpdateArticlePayload {
     content: Option<String>,
 }
 
-pub async fn update_article<T: ArticleService, U: UserService>(
-    State(state): State<AppState<T, U>>,
+pub async fn update_article<A: ArticleService, U: UserService>(
+    State(state): State<AppState<A, U>>,
     Path(id): Path<String>,
     Json(payload): Json<UpdateArticlePayload>,
 ) -> impl IntoResponse {
-    let oid = match ObjectId::parse_str(&id) {
-        Ok(oid) => oid,
-        Err(_) => return (StatusCode::BAD_REQUEST, "Invalid ID format").into_response(),
+    let Ok(oid) = ArticleId::parse_str(&id) else {
+        return (StatusCode::BAD_REQUEST, "Invalid ID format").into_response();
     };
 
     match state
@@ -114,13 +117,12 @@ pub async fn update_article<T: ArticleService, U: UserService>(
     }
 }
 
-pub async fn delete_article<T: ArticleService, U: UserService>(
-    State(state): State<AppState<T, U>>,
+pub async fn delete_article<A: ArticleService, U: UserService>(
+    State(state): State<AppState<A, U>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let oid = match ObjectId::parse_str(&id) {
-        Ok(oid) => oid,
-        Err(_) => return (StatusCode::BAD_REQUEST, "Invalid ID format").into_response(),
+    let Ok(oid) = ArticleId::parse_str(&id) else {
+        return (StatusCode::BAD_REQUEST, "Invalid ID format").into_response();
     };
 
     match state.article_service.delete_article(oid).await {
@@ -139,8 +141,8 @@ pub struct SearchParams {
     limit: usize,
 }
 
-pub async fn search_articles<T: ArticleService, U: UserService>(
-    State(state): State<AppState<T, U>>,
+pub async fn search_articles<A: ArticleService, U: UserService>(
+    State(state): State<AppState<A, U>>,
     Query(params): Query<SearchParams>,
 ) -> impl IntoResponse {
     let query = ArticleQuery {
