@@ -1,9 +1,8 @@
 use futures::TryStreamExt;
 use mongodb::{
-    Client, Collection, Database,
+    Collection, Database,
     bson::{Document, doc},
 };
-// use serde::{Deserialize, Serialize};
 
 use async_trait::async_trait;
 
@@ -20,7 +19,17 @@ use crate::domain::{
 #[derive(Clone, Debug)]
 pub struct MongodbArticleRepository {
     database: Database,
-    collection: Collection<bson::Document>,
+    collection: Collection<Document>,
+}
+
+impl MongodbArticleRepository {
+    pub fn new(database: Database) -> Self {
+        let collection: Collection<Document> = database.collection("articles");
+        Self {
+            database,
+            collection,
+        }
+    }
 }
 
 #[async_trait]
@@ -30,24 +39,15 @@ impl ArticleRepository for MongodbArticleRepository {
         skip: usize,
         limit: usize,
     ) -> Result<Vec<Article>, ArticleServiceError> {
-        let uri = "mongodb+srv://minweb:r8VasQm27aoDvphRRyhF@minweb-blog-backend.dt77xrg.mongodb.net/?retryWrites=true&w=majority&appName=minweb-blog-backend";
-        // Create a new client and connect to the server
-        let client = Client::with_uri_str(uri).await.unwrap();
-        // Get a handle on the movies collection
-        let database = client.database("blog_data");
-        let collection: Collection<Document> = database.collection("articles");
-        let mut cursor = collection
+        let mut cursor = self
+            .collection
             .find(doc! {})
             .skip(skip as u64)
             .limit(limit as i64)
-            .await
-            .unwrap();
+            .await?;
 
         let mut articles: Vec<Article> = Vec::new();
-
-        println!("cursor: {:?}", cursor.try_next().await.unwrap());
-
-        while let Some(doc) = cursor.try_next().await.unwrap() {
+        while let Some(doc) = cursor.try_next().await? {
             if let Ok(article) = bson::from_document::<Article>(doc) {
                 articles.push(article);
             }
@@ -56,17 +56,17 @@ impl ArticleRepository for MongodbArticleRepository {
     }
 
     async fn get_article_by_id(&self, id: ArticleId) -> Result<Article, ArticleServiceError> {
-        let filter = bson::doc! {
+        let filter = doc! {
             "_id": bson::to_bson(&id).unwrap()
         };
 
-        if let Ok(Some(doc)) = self.collection.find_one(filter).await {
+        if let Some(doc) = self.collection.find_one(filter).await? {
             if let Ok(article) = bson::from_document::<Article>(doc) {
                 return Ok(article);
             }
         }
 
-        return Err(ArticleServiceError::ArticleNotFound);
+        Err(ArticleServiceError::ArticleNotFound)
     }
 
     async fn add_article(
@@ -75,16 +75,9 @@ impl ArticleRepository for MongodbArticleRepository {
         author: UserName,
         content: String,
     ) -> Result<Article, ArticleServiceError> {
-        // let mut articles = self.articles.write().unwrap();
-        // let article = Article::new_article(title, author, content);
-        // articles.insert(article.id, article.clone());
-        // Ok(article)
         let article = Article::new_article(title, author, content);
-
         let article_doc = bson::to_document(&article).unwrap();
-
-        self.collection.insert_one(article_doc).await.unwrap();
-
+        self.collection.insert_one(article_doc).await?;
         Ok(article)
     }
 
@@ -141,7 +134,6 @@ impl ArticleRepository for MongodbArticleRepository {
             filter.insert("title", doc! {"$regex": title_query, "$options": "i"});
         }
         if let Some(author_query) = query.author {
-            // UserNameはデフォルトでは { inner: String } としてシリアライズされるため、ネストしたフィールドで検索
             filter.insert("author.inner", author_query);
         }
 
