@@ -1,0 +1,48 @@
+# Cloud Build pipeline for deploying to Cloud Run on push to main
+# GitHub トリガーでこの cloudbuild.yaml を使う想定
+
+substitutions:
+  _REGION: asia-northeast1
+  _SERVICE_NAME: minweb2025-blogging-platform-backend
+  _IMAGE_NAME: minweb-backend
+
+options:
+  # build.service_account を使う場合の必須設定回避（GCS バケット不要）
+  logging: CLOUD_LOGGING_ONLY
+  # machineType: E2_HIGHCPU_8  # 任意: ビルドを高速化したい場合
+
+timeout: 1800s
+
+steps:
+  - id: 'Docker build'
+    name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/${PROJECT_ID}/${_IMAGE_NAME}:${SHORT_SHA}'
+      - '-f'
+      - 'Dockerfile'
+      - '.'
+
+  - id: 'Docker push'
+    name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/${PROJECT_ID}/${_IMAGE_NAME}:${SHORT_SHA}'
+
+  - id: 'Deploy to Cloud Run'
+    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE_NAME}'
+      - '--image=gcr.io/${PROJECT_ID}/${_IMAGE_NAME}:${SHORT_SHA}'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars=SEED_TEST_DATA=false,MONGODB_DB=blog_data'
+      - '--quiet'
+
+images:
+  - 'gcr.io/${PROJECT_ID}/${_IMAGE_NAME}:${SHORT_SHA}'
