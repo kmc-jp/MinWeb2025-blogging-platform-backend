@@ -1,18 +1,11 @@
-use bson::oid::ObjectId;
 use futures::TryStreamExt;
 use mongodb::{
     Client, Collection, Database,
     bson::{Document, doc},
 };
-use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    sync::{Arc, RwLock},
-};
+// use serde::{Deserialize, Serialize};
 
 use async_trait::async_trait;
-use chrono::Utc;
-use itertools::Itertools;
 
 use crate::domain::{
     models::{
@@ -63,6 +56,16 @@ impl ArticleRepository for MongodbArticleRepository {
     }
 
     async fn get_article_by_id(&self, id: ArticleId) -> Result<Article, ArticleServiceError> {
+        let filter = bson::doc! {
+            "_id": bson::to_bson(&id).unwrap()
+        };
+
+        if let Ok(Some(doc)) = self.collection.find_one(filter).await {
+            if let Ok(article) = bson::from_document::<Article>(doc) {
+                return Ok(article);
+            }
+        }
+
         return Err(ArticleServiceError::ArticleNotFound);
     }
 
@@ -76,7 +79,13 @@ impl ArticleRepository for MongodbArticleRepository {
         // let article = Article::new_article(title, author, content);
         // articles.insert(article.id, article.clone());
         // Ok(article)
-        return Err(ArticleServiceError::ArticleNotFound);
+        let article = Article::new_article(title, author, content);
+
+        let article_doc = bson::to_document(&article).unwrap();
+
+        self.collection.insert_one(article_doc).await.unwrap();
+
+        Ok(article)
     }
 
     async fn update_article(
@@ -85,53 +94,70 @@ impl ArticleRepository for MongodbArticleRepository {
         title: Option<String>,
         content: Option<String>,
     ) -> Result<Article, ArticleServiceError> {
-        // let mut articles = self.articles.write().unwrap();
-        // let article = articles
-        //     .get_mut(&id)
-        //     .ok_or_else(|| ArticleServiceError::ArticleNotFound)?;
-        // if let Some(new_title) = title {
-        //     article.title = new_title;
-        // }
-        // if let Some(new_content) = content {
-        //     article.content = new_content;
-        // }
-        // article.updated_at = Utc::now();
-        // Ok(article.clone())
-        return Err(ArticleServiceError::ArticleNotFound);
+        let filter = doc! { "_id": bson::to_bson(&id).unwrap() };
+
+        let mut set_doc = doc! {};
+        if let Some(new_title) = title {
+            set_doc.insert("title", new_title);
+        }
+        if let Some(new_content) = content {
+            set_doc.insert("content", new_content);
+        }
+
+        let mut update_doc = doc! {"$currentDate": {"updated_at": true}};
+        if !set_doc.is_empty() {
+            update_doc.insert("$set", set_doc);
+        }
+        self.collection
+            .update_one(filter.clone(), update_doc)
+            .await?;
+
+        if let Some(doc) = self.collection.find_one(filter).await? {
+            if let Ok(article) = bson::from_document::<Article>(doc) {
+                return Ok(article);
+            }
+        }
+        Err(ArticleServiceError::ArticleNotFound)
     }
+
     async fn delete_article(&self, id: ArticleId) -> Result<(), ArticleServiceError> {
-        // let mut articles = self.articles.write().unwrap();
-        // if articles.remove(&id).is_some() {
-        //     Ok(())
-        // } else {
-        //     Err(ArticleServiceError::ArticleNotFound)
-        // }
-        return Err(ArticleServiceError::ArticleNotFound);
+        let filter = doc! { "_id": bson::to_bson(&id).unwrap() };
+        let result = self.collection.delete_one(filter).await?;
+        if result.deleted_count == 1 {
+            Ok(())
+        } else {
+            Err(ArticleServiceError::ArticleNotFound)
+        }
     }
+
     async fn get_articles_with_query(
         &self,
         skip: usize,
         limit: usize,
         query: ArticleQuery,
     ) -> Result<Vec<Article>, ArticleServiceError> {
-        // let articles = self.articles.read().unwrap();
-        // let filtered_articles: Vec<Article> = articles
-        //     .values()
-        //     .filter(|article| {
-        //         query
-        //             .title
-        //             .as_ref()
-        //             .is_none_or(|title| article.title.contains(title))
-        //             && query
-        //                 .author
-        //                 .as_ref()
-        //                 .is_none_or(|author| article.author.as_str() == author)
-        //     })
-        //     .k_smallest_by_key(skip + limit, |article| article.created_at)
-        //     .skip(skip)
-        //     .cloned()
-        //     .collect();
-        // Ok(filtered_articles)
-        return Err(ArticleServiceError::ArticleNotFound);
+        let mut filter = doc! {};
+        if let Some(title_query) = query.title {
+            filter.insert("title", doc! {"$regex": title_query, "$options": "i"});
+        }
+        if let Some(author_query) = query.author {
+            // UserNameはデフォルトでは { inner: String } としてシリアライズされるため、ネストしたフィールドで検索
+            filter.insert("author.inner", author_query);
+        }
+
+        let mut cursor = self
+            .collection
+            .find(filter)
+            .skip(skip as u64)
+            .limit(limit as i64)
+            .await?;
+
+        let mut articles: Vec<Article> = Vec::new();
+        while let Some(doc) = cursor.try_next().await? {
+            if let Ok(article) = bson::from_document::<Article>(doc) {
+                articles.push(article);
+            }
+        }
+        Ok(articles)
     }
 }
