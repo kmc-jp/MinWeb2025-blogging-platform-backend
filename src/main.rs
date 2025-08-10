@@ -24,7 +24,7 @@ use crate::{
 
 #[tokio::main]
 async fn main() {
-    dotenv().expect(".env file not found");
+    let _ = dotenv();
 
     tracing_subscriber::registry()
         .with(
@@ -36,7 +36,13 @@ async fn main() {
 
     let app = create_app().await;
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    // Cloud Run が提供する PORT 環境変数でリッスンする（ローカルでは 3000 にフォールバック）
+    let port: u16 = std::env::var("PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(3000);
+    let addr = format!("0.0.0.0:{}", port);
+    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     tracing::debug!("listening on http://{}", listener.local_addr().unwrap());
     axum::serve(listener, app)
         .with_graceful_shutdown(async { signal::ctrl_c().await.unwrap() })
@@ -56,7 +62,11 @@ async fn create_app() -> Router {
     let article_service = ArticleUsecase::new(MongodbArticleRepository::new(database.clone()));
     let user_service = UserUsecase::new(MongodbUserRepository::new(database.clone()));
 
-    create_test_data(&article_service, &user_service).await;
+    // 起動時のテストデータ投入は、明示的に有効化された場合のみ実施
+    let seed_on_boot = std::env::var("SEED_TEST_DATA").unwrap_or_else(|_| "false".to_string());
+    if seed_on_boot.eq_ignore_ascii_case("true") {
+        create_test_data(&article_service, &user_service).await;
+    }
 
     Router::new()
         .route("/", get(root_handler))
