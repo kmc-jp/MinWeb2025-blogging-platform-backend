@@ -1,19 +1,34 @@
-# Rustのビルド環境を含んだイメージをベースにする
-FROM rust:1-slim
+FROM rust:1-slim AS builder
 
-# 作業ディレクトリを設定
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /usr/src/app
 
-# プロジェクトのファイルをすべてコンテナにコピー
-COPY . .
+COPY Cargo.toml Cargo.lock* ./
 
-# イメージビルド時に一度だけリリースビルドを実行
-# これで実行ファイルが target/release/ に作成される
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release
+RUN rm -rf src
+
+COPY src ./src
+RUN touch src/main.rs
 RUN cargo build --release
 
-# 公開するポートを指定
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY --from=builder /usr/src/app/target/release/MinWeb2025-blogging-platform-backend /app/
+
 EXPOSE 3000
 
-# コンテナ起動時は、ビルド済みの実行可能ファイルを実行するだけ
-# <your_app_name> はご自身のプロジェクト名に書き換えてください
-CMD ["./target/release/MinWeb2025-blogging-platform-backend"]
+# バイナリを実行
+CMD ["./MinWeb2025-blogging-platform-backend"]
