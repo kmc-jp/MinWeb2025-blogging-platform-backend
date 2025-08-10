@@ -2,7 +2,7 @@
 # GitHub トリガーでこの cloudbuild.yaml を使う想定
 
 substitutions:
-  _REGION: asia-northeast1
+  _REGION: asia-northeast2
   _SERVICE_NAME: minweb2025-blogging-platform-backend
   _IMAGE_NAME: minweb-backend
   _AR_REPO: cloud-run-source-deploy 
