@@ -45,7 +45,6 @@ pub struct CreateArticlePayload {
     content: String,
 }
 
-// この関数はUserAppStateに依存していることに注意してください
 pub async fn create_article<A: ArticleService, U: UserService>(
     State(state): State<AppState<A, U>>,
     Json(payload): Json<CreateArticlePayload>,
