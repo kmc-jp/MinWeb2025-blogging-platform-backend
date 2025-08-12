@@ -1,13 +1,5 @@
 # MinWeb2025-blogging-platform-backend
 
-## セットアップ
-データベースをやっている人はMongoDBのセットアップ方法の追記をお願いします
-```bash
-git clone git@github.com:kmc-jp/MinWeb2025-blogging-platform-backend.git
-cd MinWeb2025-blogging-platform-backend
-cargo run
-```
-
 ## /api/articlesのAPI仕様
 
 データベース上のArticleデータ
@@ -18,7 +10,8 @@ cargo run
     "title": "記事のタイトル",
     "content": "記事の内容",
     "created_at": "記事が作成された日時",
-    "updated_at": "記事が更新された日時"
+    "updated_at": "記事が更新された日時",
+    "tags": ["タグ1", "タグ2"] // 記事に関連するタグのIDのリスト
 }
 ```
 
@@ -62,13 +55,14 @@ POST通信に用いるJSONの形式
 {
     "author": "記事を作成したユーザーの名前",
     "title": "記事のタイトル",
-    "content": "記事の内容"
+    "content": "記事の内容",
+    "tags": ["タグ1", "タグ2"] // 記事に関連するタグのリスト
 }
 ```
 
 使用例
 ```bash
-curl -X POST http://localhost:3000/api/articles -H "Content-Type: application/json" -d '{"author": "hoge", "title": "新しい記事のタイトル", "content": "記事の内容"}'
+curl -X POST http://localhost:3000/api/articles -H "Content-Type: application/json" -d '{"author": "hoge", "title": "新しい記事のタイトル", "content": "記事の内容", "tags": ["tag1", "tag2"]}'
 ```
 ```http
 POST http://localhost:3000/api/articles
@@ -77,7 +71,8 @@ Content-Type: application/json
 {
     "author": "hoge",
     "title": "新しい記事のタイトル",
-    "content": "記事の内容"
+    "content": "記事の内容",
+    "tags": ["tag1", "tag2"]
 }
 ```
 
@@ -91,7 +86,8 @@ PATCH通信に用いるJSONの形式
 ```json
 {
     "title": "記事のタイトル",
-    "content": "記事の内容"
+    "content": "記事の内容",
+    "tags": ["タグ1", "タグ2"] // 記事に関連するタグのリスト
 }
 ```
 
@@ -99,7 +95,7 @@ PATCH通信に用いるJSONの形式
 
 使用例
 ```bash
-curl -X PATCH http://localhost:3000/api/articles/{id} -H "Content-Type: application/json" -d '{"title": "部分的に更新された記事のタイトル", "content": "部分的に更新された記事の内容"}'
+curl -X PATCH http://localhost:3000/api/articles/{id} -H "Content-Type: application/json" -d '{"title": "部分的に更新された記事のタイトル", "content": "部分的に更新された記事の内容", "tags": ["tag1", "tag2"]}'
 ```
 ```http
 PATCH http://localhost:3000/api/articles/{id}
@@ -123,6 +119,19 @@ curl -X DELETE http://localhost:3000/api/articles/{id}
 ```http
 DELETE http://localhost:3000/api/articles/{id}
 ```
+
+### 特定のタグの組み合わせを含むすべての記事のデータをJSONで取得
+`GET /api/articles/search?tags={tag1},{tag2}`
+`tag1`と`tag2`は検索したいタグの名前です。複数のタグをカンマで区切って指定します。
+使用例
+```bash
+curl http://localhost:3000/api/articles/search?tags=競プロ,Rust
+```
+```
+```http
+GET http://localhost:3000/api/articles/search?tags=ML
+```
+
 
 ### 特定の文字列をタイトルに含むすべての記事のデータをJSONで取得
 
@@ -152,6 +161,29 @@ curl http://localhost:3000/api/articles/search?author=furakuta
 ```http
 GET http://localhost:3000/api/articles/search?author=akkey
 ```
+
+### 記事本文に特定の文字列を含むすべての記事を取得
+`GET /api/articles/search?content_q={content_query}`
+`content_query`は検索したい文字列です。
+使用例
+```bash
+curl http://localhost:3000/api/articles/search?content_q=Rust
+```
+```http
+GET http://localhost:3000/api/articles/search?content_q=プログラミング
+```
+
+### 複数の条件を組み合わせて検索
+`GET /api/articles/search?author={user_name}&title_q={title_query}&content_q={content_query}&tags={tag1},{tag2}`
+上記の`/api/articles/search`は、記事のタイトル、本文、タグ、著者名に対して検索を行います。複数のクエリパラメータを組み合わせて使用することも可能です。すべての条件に一致する記事が返されます。
+使用例
+```bash
+curl http://localhost:3000/api/articles/search?author=furakuta&tags=rust
+```
+```http
+GET http://localhost:3000/api/articles/search?author=akkey&tags=構文解析
+```
+
 
 ## /api/usersのAPI仕様
 
@@ -280,3 +312,58 @@ curl -X DELETE http://localhost:3000/api/users/hoge
 DELETE http://localhost:3000/api/users/hoge
 ```
 
+## /api/tagsのAPI仕様
+データベース上のTagデータ
+```json
+{
+    "_id": "ObjectId",
+    "name": "タグ名", // タグの名前
+    "created_at": "タグが作成された日時",
+    "num_articles": 123 // タグが付けられた記事の数
+}
+```
+
+### タグのデータのリストをJSONで取得
+`GET /api/tags?skip={skip}&limit={limit}`
+`skip`は取得をスキップするタグの数、`limit`は取得するタグの最大数です。
+デフォルトでは`skip=0`、`limit=100`となっています。
+使用例
+```bash
+curl http://localhost:3000/api/tags?skip=3&limit=10
+```
+```http
+GET http://localhost:3000/api/tags?limit=5
+```
+
+### 指定したタグのデータをJSONで取得
+`GET /api/tags/{tag_name}`
+`tag_name`はタグの名前です。
+
+使用例
+```bash
+curl http://localhost:3000/api/tags/rust
+```
+```http
+GET http://localhost:3000/api/tags/競プロ
+```
+
+### 新しいタグを作成
+`POST /api/tags`
+POST通信に用いるJSONの形式
+```json
+{
+    "name": "タグ名" // タグの名前
+}
+```
+使用例
+```bash
+curl -X POST http://localhost:3000/api/tags -H "Content-Type: application/json" -d '{"name": "新しいタグ"}'
+```
+```http
+POST http://localhost:3000/api/tags
+Content-Type: application/json
+
+{
+    "name": "新しいタグ"
+}
+```
