@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use futures::TryStreamExt;
 use mongodb::{
-    bson::{doc, Document},
+    bson::doc,
     Collection, Database,
 };
 
@@ -17,19 +17,14 @@ use crate::domain::{
 #[derive(Debug, Clone)]
 pub struct MongodbUserRepository {
     database: Database,
-    collection: Collection<Document>,
+    collection: Collection<User>,
 }
 
 impl MongodbUserRepository {
     pub fn new(database: Database) -> Self {
-        let collection: Collection<Document> = database.collection("users");
+        let collection: Collection<User> = database.collection("users");
         Self { database, collection }
     }
-}
-
-fn deserialize_user(doc: Document) -> User {
-    bson::from_document(doc)
-    .unwrap_or_else(|error| panic!("deserializing user failed: {error:?}"))
 }
 
 #[async_trait]
@@ -44,12 +39,12 @@ impl UserRepository for MongodbUserRepository {
             .map_err(UserServiceError::DatabaseError)?;
 
         let mut users: Vec<User> = Vec::new();
-        while let Some(doc) = cursor
+        while let Some(user) = cursor
             .try_next()
             .await
             .map_err(UserServiceError::DatabaseError)?
         {
-            users.push(deserialize_user(doc));
+            users.push(user);
         }
         Ok(users)
     }
@@ -63,7 +58,6 @@ impl UserRepository for MongodbUserRepository {
             .await
             .map_err(UserServiceError::DatabaseError)?
             .ok_or(UserServiceError::UserNotFound)
-            .map(deserialize_user)
     }
 
     async fn get_user_by_name(&self, name: &str) -> Result<User, UserServiceError> {
@@ -75,7 +69,6 @@ impl UserRepository for MongodbUserRepository {
             .await
             .map_err(UserServiceError::DatabaseError)?
             .ok_or(UserServiceError::UserNotFound)
-            .map(deserialize_user)
     }
 
     async fn add_user(
@@ -108,9 +101,8 @@ impl UserRepository for MongodbUserRepository {
             pw_hash,
             created_at: chrono::Utc::now(),
         };
-        let doc = bson::to_document(&user).unwrap();
         self.collection
-            .insert_one(doc)
+            .insert_one(user.clone())
             .await
             .map_err(UserServiceError::DatabaseError)?;
         Ok(user)
@@ -166,7 +158,6 @@ impl UserRepository for MongodbUserRepository {
             .await
             .map_err(UserServiceError::DatabaseError)?
             .ok_or(UserServiceError::UserNotFound)
-            .map(deserialize_user)
     }
 
     async fn delete_user(&self, id: UserId) -> Result<(), UserServiceError> {

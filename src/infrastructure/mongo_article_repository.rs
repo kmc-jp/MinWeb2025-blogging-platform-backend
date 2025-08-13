@@ -1,7 +1,8 @@
+use chrono::Utc;
 use futures::TryStreamExt;
 use mongodb::{
     Collection, Database,
-    bson::{Document, doc},
+    bson::doc,
 };
 
 use async_trait::async_trait;
@@ -19,22 +20,17 @@ use crate::domain::{
 #[derive(Clone, Debug)]
 pub struct MongodbArticleRepository {
     database: Database,
-    collection: Collection<Document>,
+    collection: Collection<Article>,
 }
 
 impl MongodbArticleRepository {
     pub fn new(database: Database) -> Self {
-        let collection: Collection<Document> = database.collection("articles");
+        let collection = database.collection("articles");
         Self {
             database,
             collection,
         }
     }
-}
-
-fn deserialize_aritcle(doc: Document) -> Article {
-    bson::from_document(doc)
-    .unwrap_or_else(|error| panic!("deserializing article failed: {error:?}"))
 }
 
 #[async_trait]
@@ -52,8 +48,8 @@ impl ArticleRepository for MongodbArticleRepository {
             .await?;
 
         let mut articles: Vec<Article> = Vec::new();
-        while let Some(doc) = cursor.try_next().await? {
-            articles.push(deserialize_aritcle(doc));
+        while let Some(article) = cursor.try_next().await? {
+            articles.push(article);
         }
         Ok(articles)
     }
@@ -68,7 +64,6 @@ impl ArticleRepository for MongodbArticleRepository {
             .find_one(filter)
             .await?
             .ok_or(ArticleServiceError::ArticleNotFound)
-            .map(deserialize_aritcle)    
     }
 
     async fn add_article(
@@ -78,8 +73,7 @@ impl ArticleRepository for MongodbArticleRepository {
         content: String,
     ) -> Result<Article, ArticleServiceError> {
         let article = Article::new_article(title, author, content);
-        let article_doc = bson::to_document(&article).unwrap();
-        self.collection.insert_one(article_doc).await?;
+        self.collection.insert_one(article.clone()).await?;
         Ok(article)
     }
 
@@ -89,7 +83,10 @@ impl ArticleRepository for MongodbArticleRepository {
         title: Option<String>,
         content: Option<String>,
     ) -> Result<Article, ArticleServiceError> {
-        let filter = doc! { "_id": bson::to_bson(&id).unwrap() };
+        let filter = doc! {
+            "_id": bson::to_bson(&id).unwrap(),
+            "update_at": bson::to_bson(&Utc::now()).unwrap()
+        };
 
         let mut set_doc = doc! {};
         if let Some(new_title) = title {
@@ -99,7 +96,7 @@ impl ArticleRepository for MongodbArticleRepository {
             set_doc.insert("content", new_content);
         }
 
-        let mut update_doc = doc! {"$currentDate": {"updated_at": true}};
+        let mut update_doc = doc! {};
         if !set_doc.is_empty() {
             update_doc.insert("$set", set_doc);
         }
@@ -112,7 +109,6 @@ impl ArticleRepository for MongodbArticleRepository {
             .find_one(filter)
             .await?
             .ok_or(ArticleServiceError::ArticleNotFound)
-            .map(deserialize_aritcle)
     }
 
     async fn delete_article(&self, id: ArticleId) -> Result<(), ArticleServiceError> {
@@ -147,8 +143,8 @@ impl ArticleRepository for MongodbArticleRepository {
             .await?;
 
         let mut articles: Vec<Article> = Vec::new();
-        while let Some(doc) = cursor.try_next().await? {
-            articles.push(deserialize_aritcle(doc));
+        while let Some(article) = cursor.try_next().await? {
+            articles.push(article);
         }
         Ok(articles)
     }
