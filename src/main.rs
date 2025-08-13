@@ -153,6 +153,7 @@ where
 
 #[cfg(test)]
 mod api_test {
+    use axum::http::StatusCode;
     use axum_test::TestServer;
     use dotenvy::dotenv;
 
@@ -197,7 +198,7 @@ mod api_test {
         );
 
         //記事の一部を更新
-        let modified_article = server
+        let article_modifing_response = server
             .patch(&format!(
                 "http://localhost:3000/api/articles/{}",
                 python_waruguchi_article.id
@@ -205,8 +206,9 @@ mod api_test {
             .json(&serde_json::json!({
                 "title": "Pythonは💩"
             }))
-            .await
-            .json::<Article>();
+            .await;
+        assert_eq!(article_modifing_response.status_code(), StatusCode::OK);
+        let modified_article = article_modifing_response.json::<Article>();
         assert_eq!(modified_article.title, "Pythonは💩");
 
         // 新規記事作成テスト
@@ -220,6 +222,14 @@ mod api_test {
             .json(&new_article)
             .await;
         assert_eq!(post_response.status_code(), 201);
+
+        
+        let articles = server
+            .get("http://localhost:3000/api/articles")
+            .await
+            .json::<Vec<Article>>();
+        // もう一度記事一覧が取得できることを確認
+        assert!(!articles.is_empty());
     }
     #[tokio::test]
     async fn user_test() {

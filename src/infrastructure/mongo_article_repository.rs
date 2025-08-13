@@ -83,12 +83,9 @@ impl ArticleRepository for MongodbArticleRepository {
         title: Option<String>,
         content: Option<String>,
     ) -> Result<Article, ArticleServiceError> {
-        let filter = doc! {
-            "_id": bson::to_bson(&id).unwrap(),
-            "update_at": bson::to_bson(&Utc::now()).unwrap()
-        };
+        let filter = doc! { "_id": bson::to_bson(&id).unwrap() };
 
-        let mut set_doc = doc! {};
+        let mut set_doc = doc! { "updated_at": bson::to_bson(&Utc::now()).unwrap() };
         if let Some(new_title) = title {
             set_doc.insert("title", new_title);
         }
