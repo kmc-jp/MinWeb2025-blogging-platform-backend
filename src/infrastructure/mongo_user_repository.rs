@@ -27,6 +27,11 @@ impl MongodbUserRepository {
     }
 }
 
+fn deserialize_user(doc: Document) -> User {
+    bson::from_document(doc)
+    .unwrap_or_else(|error| panic!("deserializing user failed: {error:?}"))
+}
+
 #[async_trait]
 impl UserRepository for MongodbUserRepository {
     async fn get_users(&self, skip: usize, limit: usize) -> Result<Vec<User>, UserServiceError> {
@@ -44,41 +49,33 @@ impl UserRepository for MongodbUserRepository {
             .await
             .map_err(UserServiceError::DatabaseError)?
         {
-            if let Ok(user) = bson::from_document::<User>(doc) {
-                users.push(user);
-            }
+            users.push(deserialize_user(doc));
         }
         Ok(users)
     }
 
     async fn get_user_by_id(&self, id: UserId) -> Result<User, UserServiceError> {
         let filter = doc! {"_id": bson::to_bson(&id).unwrap() };
-        if let Some(doc) = self
+        
+        self
             .collection
             .find_one(filter)
             .await
             .map_err(UserServiceError::DatabaseError)?
-        {
-            if let Ok(user) = bson::from_document::<User>(doc) {
-                return Ok(user);
-            }
-        }
-        Err(UserServiceError::UserNotFound)
+            .ok_or(UserServiceError::UserNotFound)
+            .map(deserialize_user)
     }
 
     async fn get_user_by_name(&self, name: &str) -> Result<User, UserServiceError> {
         let filter = doc! {"name.inner": name };
-        if let Some(doc) = self
+
+        self
             .collection
             .find_one(filter)
             .await
             .map_err(UserServiceError::DatabaseError)?
-        {
-            if let Ok(user) = bson::from_document::<User>(doc) {
-                return Ok(user);
-            }
-        }
-        Err(UserServiceError::UserNotFound)
+            .ok_or(UserServiceError::UserNotFound)
+            .map(deserialize_user)
     }
 
     async fn add_user(
@@ -163,17 +160,13 @@ impl UserRepository for MongodbUserRepository {
             .await
             .map_err(UserServiceError::DatabaseError)?;
 
-        if let Some(doc) = self
+        self
             .collection
             .find_one(filter)
             .await
             .map_err(UserServiceError::DatabaseError)?
-        {
-            if let Ok(user) = bson::from_document::<User>(doc) {
-                return Ok(user);
-            }
-        }
-        Err(UserServiceError::UserNotFound)
+            .ok_or(UserServiceError::UserNotFound)
+            .map(deserialize_user)
     }
 
     async fn delete_user(&self, id: UserId) -> Result<(), UserServiceError> {
