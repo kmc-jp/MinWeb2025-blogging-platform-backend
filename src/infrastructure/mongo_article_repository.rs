@@ -11,7 +11,7 @@ use crate::domain::{
         article::{Article, ArticleId},
         article_query::ArticleQuery,
         article_service::ArticleServiceError,
-        user_name::UserName,
+        user_name::UserName
     },
     repositorys::article_repository::ArticleRepository,
 };
@@ -32,6 +32,11 @@ impl MongodbArticleRepository {
     }
 }
 
+fn deserialize_aritcle(doc: Document) -> Article {
+    bson::from_document(doc)
+    .unwrap_or_else(|error| panic!("deserializing article failed: {error:?}"))
+}
+
 #[async_trait]
 impl ArticleRepository for MongodbArticleRepository {
     async fn get_articles(
@@ -48,9 +53,7 @@ impl ArticleRepository for MongodbArticleRepository {
 
         let mut articles: Vec<Article> = Vec::new();
         while let Some(doc) = cursor.try_next().await? {
-            if let Ok(article) = bson::from_document::<Article>(doc) {
-                articles.push(article);
-            }
+            articles.push(deserialize_aritcle(doc));
         }
         Ok(articles)
     }
@@ -60,13 +63,12 @@ impl ArticleRepository for MongodbArticleRepository {
             "_id": bson::to_bson(&id).unwrap()
         };
 
-        if let Some(doc) = self.collection.find_one(filter).await? {
-            if let Ok(article) = bson::from_document::<Article>(doc) {
-                return Ok(article);
-            }
-        }
-
-        Err(ArticleServiceError::ArticleNotFound)
+        self
+            .collection
+            .find_one(filter)
+            .await?
+            .ok_or(ArticleServiceError::ArticleNotFound)
+            .map(deserialize_aritcle)    
     }
 
     async fn add_article(
@@ -105,12 +107,12 @@ impl ArticleRepository for MongodbArticleRepository {
             .update_one(filter.clone(), update_doc)
             .await?;
 
-        if let Some(doc) = self.collection.find_one(filter).await? {
-            if let Ok(article) = bson::from_document::<Article>(doc) {
-                return Ok(article);
-            }
-        }
-        Err(ArticleServiceError::ArticleNotFound)
+        self
+            .collection
+            .find_one(filter)
+            .await?
+            .ok_or(ArticleServiceError::ArticleNotFound)
+            .map(deserialize_aritcle)
     }
 
     async fn delete_article(&self, id: ArticleId) -> Result<(), ArticleServiceError> {
@@ -146,9 +148,7 @@ impl ArticleRepository for MongodbArticleRepository {
 
         let mut articles: Vec<Article> = Vec::new();
         while let Some(doc) = cursor.try_next().await? {
-            if let Ok(article) = bson::from_document::<Article>(doc) {
-                articles.push(article);
-            }
+            articles.push(deserialize_aritcle(doc));
         }
         Ok(articles)
     }
