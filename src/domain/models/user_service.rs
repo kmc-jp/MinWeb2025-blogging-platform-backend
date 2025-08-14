@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use super::{user::User, user_name::UserName};
+use super::{user::User};
 
 #[async_trait]
 pub trait UserService {
@@ -25,7 +25,6 @@ pub trait UserService {
         password: Option<String>,
     ) -> Result<User, UserServiceError>;
     async fn delete_user(&self, name: &str) -> Result<(), UserServiceError>;
-    async fn validate_user_name(&self, name: &str) -> Result<UserName, UserServiceError>;
 }
 
 #[derive(Debug, Clone, thiserror::Error)]

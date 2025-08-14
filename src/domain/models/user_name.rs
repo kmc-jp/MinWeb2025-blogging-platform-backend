@@ -13,8 +13,6 @@ impl UserName {
         &self.inner
     }
     /// UserNameを新しく作成する
-    /// 必ず一意の名前を指定する必要があります
-    /// UserRepositoryのvalidate_user_nameメソッドのみで使用されます
     pub fn new(name: String) -> Self {
         UserName { inner: name }
     }
