@@ -30,49 +30,27 @@ impl Article {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Default, Hash)]
-pub struct ArticleId {
-    inner: ObjectId,
-}
+#[derive(Clone, Copy, PartialEq, Eq, Default, Hash, Serialize, Deserialize)]
+pub struct ArticleId(ObjectId);
 
 impl ArticleId {
     pub fn new() -> Self {
-        Self {
-            inner: ObjectId::new(),
-        }
+        Self(ObjectId::new())
     }
     pub fn parse_str(s: &str) -> Result<Self, bson::oid::Error> {
-        ObjectId::parse_str(s).map(|inner| ArticleId { inner })
+        ObjectId::parse_str(s).map(|inner| ArticleId(inner))
     }
 }
 
 impl Debug for ArticleId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("ArticleId")
-            .field(&self.inner.to_hex())
+            .field(&self.0.to_hex())
             .finish()
     }
 }
 impl Display for ArticleId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.inner.to_hex())
-    }
-}
-
-impl Serialize for ArticleId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        self.inner.serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for ArticleId {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        ObjectId::deserialize(deserializer).map(|inner| Self { inner })
+        f.write_str(&self.0.to_hex())
     }
 }
