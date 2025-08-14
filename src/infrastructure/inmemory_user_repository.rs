@@ -48,8 +48,8 @@ impl UserRepository for InMemoryUserRepository {
         show_email: bool,
         pw_hash: Vec<u8>,
     ) -> Result<User, UserServiceError> {
-        let mut users = self.users.write().unwrap();
-        let user_name = validate_user_name(&users, name)?;
+        let mut users: std::sync::RwLockWriteGuard<'_, HashMap<UserId, User>> = self.users.write().unwrap();
+        let user_name = new_user_name(&users, name)?;
         let id = UserId::new();
         let user = User {
             id,
@@ -76,7 +76,7 @@ impl UserRepository for InMemoryUserRepository {
     ) -> Result<User, UserServiceError> {
         let mut users = self.users.write().unwrap();
         let validated_name = name
-            .map(|name| validate_user_name(&users, name))
+            .map(|name| new_user_name(&users, name))
             .transpose()?;
         // ユーザーの更新
         let user = users
@@ -111,13 +111,9 @@ impl UserRepository for InMemoryUserRepository {
             Err(UserServiceError::UserNotFound)
         }
     }
-    async fn validate_user_name(&self, name: &str) -> Result<UserName, UserServiceError> {
-        let users = self.users.read().unwrap();
-        validate_user_name(&users, name.to_string())
-    }
 }
 
-fn validate_user_name(
+fn new_user_name(
     users: &HashMap<UserId, User>,
     name: String,
 ) -> Result<UserName, UserServiceError> {
