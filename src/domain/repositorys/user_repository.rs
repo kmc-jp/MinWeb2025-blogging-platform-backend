@@ -69,4 +69,10 @@ pub trait UserRepository {
     /// # Errors
     /// ユーザーが存在しない場合や、データベースへのアクセスに失敗した場合は`Err`を返す
     async fn delete_user(&self, id: UserId) -> Result<(), UserServiceError>;
+
+    /// ユーザー名が既に使用されているかどうかをチェックする
+    /// `name`: チェックするユーザー名
+    /// # Errors
+    /// データベースへのアクセスに失敗した場合は`Err`を返す
+    async fn is_used_user_name(&self, name: &str) -> Result<bool, UserServiceError>;
 }

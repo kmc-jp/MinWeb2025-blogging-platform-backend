@@ -111,6 +111,10 @@ impl UserRepository for InMemoryUserRepository {
             Err(UserServiceError::UserNotFound)
         }
     }
+    async fn is_used_user_name(&self, name: &str) -> Result<bool, UserServiceError> {
+        let users = self.users.read().unwrap();
+        Ok(users.values().any(|user| user.name.as_str() == name))
+    }
 }
 
 fn new_user_name(
