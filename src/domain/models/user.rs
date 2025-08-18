@@ -31,45 +31,23 @@ impl AuthUser for User {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Copy, Hash, Default)]
-pub struct UserId {
-    inner: ObjectId,
-}
+#[derive(PartialEq, Eq, Clone, Copy, Hash, Default, Serialize, Deserialize)]
+pub struct UserId(ObjectId);
 
 impl UserId {
     pub fn new() -> Self {
-        Self {
-            inner: ObjectId::new(),
-        }
-    }
-}
-
-impl Serialize for UserId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        self.inner.serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for UserId {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        ObjectId::deserialize(deserializer).map(|inner| Self { inner })
+        Self(ObjectId::new())
     }
 }
 
 impl Debug for UserId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("UserId").field(&self.inner.to_hex()).finish()
+        f.debug_tuple("UserId").field(&self.0.to_hex()).finish()
     }
 }
 
 impl Display for UserId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.inner.to_hex())
+        f.write_str(&self.0.to_hex())
     }
 }
