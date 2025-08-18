@@ -25,6 +25,7 @@ pub trait UserService {
         password: Option<String>,
     ) -> Result<User, UserServiceError>;
     async fn delete_user(&self, name: &str) -> Result<(), UserServiceError>;
+    async fn is_used_user_name(&self, name: &str) -> Result<bool, UserServiceError>;
 }
 
 #[derive(Debug, Clone, thiserror::Error)]

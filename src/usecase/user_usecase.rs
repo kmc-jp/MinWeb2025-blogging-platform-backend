@@ -78,4 +78,8 @@ impl<U: UserRepository + Clone + Send + Sync> UserService for UserUsecase<U> {
         let user = self.repository.get_user_by_name(name).await?;
         self.repository.delete_user(user.id).await
     }
+
+    async fn is_used_user_name(&self, name: &str) -> Result<bool, UserServiceError> {
+        self.repository.is_used_user_name(name).await
+    }
 }
