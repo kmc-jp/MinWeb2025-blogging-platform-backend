@@ -4,7 +4,6 @@ use sha2::{Digest, Sha256};
 use crate::domain::{
     models::{
         user::User,
-        user_name::UserName,
         user_service::{UserService, UserServiceError},
     },
     repositorys::user_repository::UserRepository,

@@ -1,6 +1,5 @@
 use crate::domain::models::{
     user::{User, UserId},
-    user_name::UserName,
     user_service::UserServiceError,
 };
 use async_trait::async_trait;
