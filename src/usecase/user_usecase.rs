@@ -4,7 +4,6 @@ use sha2::{Digest, Sha256};
 use crate::domain::{
     models::{
         user::User,
-        user_name::UserName,
         user_service::{UserService, UserServiceError},
     },
     repositorys::user_repository::UserRepository,
@@ -80,7 +79,7 @@ impl<U: UserRepository + Clone + Send + Sync> UserService for UserUsecase<U> {
         self.repository.delete_user(user.id).await
     }
 
-    async fn validate_user_name(&self, name: &str) -> Result<UserName, UserServiceError> {
-        self.repository.validate_user_name(name).await
+    async fn is_used_user_name(&self, name: &str) -> Result<bool, UserServiceError> {
+        self.repository.is_used_user_name(name).await
     }
 }

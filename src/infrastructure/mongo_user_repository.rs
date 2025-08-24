@@ -81,13 +81,7 @@ impl UserRepository for MongodbUserRepository {
         pw_hash: Vec<u8>,
     ) -> Result<User, UserServiceError> {
         // 重複チェック
-        if self
-            .collection
-            .find_one(doc! {"name.inner": &name })
-            .await
-            .map_err(UserServiceError::DatabaseError)?
-            .is_some()
-        {
+        if self.is_used_user_name(&name).await? {
             return Err(UserServiceError::UserAlreadyExists);
         }
 
@@ -120,13 +114,7 @@ impl UserRepository for MongodbUserRepository {
     ) -> Result<User, UserServiceError> {
         // 名前を変更する場合は重複チェック
         if let Some(ref new_name) = name {
-            if self
-                .collection
-                .find_one(doc! {"name.inner": new_name })
-                .await
-                .map_err(UserServiceError::DatabaseError)?
-                .is_some()
-            {
+            if self.is_used_user_name(&new_name).await? {
                 return Err(UserServiceError::UserAlreadyExists);
             }
         }
@@ -169,18 +157,14 @@ impl UserRepository for MongodbUserRepository {
             .map_err(UserServiceError::DatabaseError)?;
         if result.deleted_count == 1 { Ok(()) } else { Err(UserServiceError::UserNotFound) }
     }
-
-    async fn validate_user_name(&self, name: &str) -> Result<UserName, UserServiceError> {
-        if self
-            .collection
-            .find_one(doc! {"name.inner": name })
-            .await
-            .map_err(UserServiceError::DatabaseError)?
-            .is_some()
-        {
-            Err(UserServiceError::UserAlreadyExists)
-        } else {
-            Ok(UserName::new(name.to_string()))
-        }
+    
+    async fn is_used_user_name(&self, name: &str) -> Result<bool, UserServiceError> {
+        let filter = doc! {"name.inner": name};
+        let user =
+            self.collection
+                .find_one(filter)
+                .await
+                .map_err(UserServiceError::DatabaseError)?;
+        Ok(user.is_some())
     }
 }
